@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>零股換算器 穩定版</title>
+    <title>零股換算器_20260506</title>
     <style>
         :root { --primary-color: #2c3e50; --accent-color: #1a73e8; --bg-color: #f1f3f4; }
         body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; background-color: var(--bg-color); display: flex; justify-content: center; padding: 20px; margin: 0; }
@@ -129,7 +129,7 @@
             }
 
             if (price) {
-                const shares = Math.ceil(budget / price);
+                const shares = (budget / price).toFixed(1);
 
                 const nameMap = {
                     "2330.TW": "台積電 (2330)",
