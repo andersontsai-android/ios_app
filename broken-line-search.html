@@ -176,7 +176,7 @@
 <div class="container">
     <h1>是否破線 查詢系統</h1>
     <div class="search-box">
-        <input type="text" id="stockCode" placeholder="輸入代碼 (例如: 1303)" autofocus>
+        <input type="number" id="stockCode" placeholder="輸入代碼 (例如: 1303)" inputmode="numeric" autofocus>
         <button onclick="searchStock()">查詢</button>
     </div>
     <div id="result"></div>
@@ -209,10 +209,31 @@
             const csvText = await response.text();
             const data = parseCSV(csvText);
             
-            // 使用 A 欄 (index 0) 進行包含比對
+            // 1. 先根據輸入代碼找 A 欄 (index 0) 是否包含該代碼
             const stock = data.find(row => row[0] && row[0].toString().includes(inputCode));
 
             if (stock) {
+                // 2. 如果找到了，拿 A 欄完整字串 (例如 "1303南亞") 去整份表的 P 欄 (index 15) 找
+                const fullStockName = stock[0];
+                const advancedStock = data.find(row => row[15] === fullStockName);
+
+                let advancedHtml = '';
+                if (advancedStock) {
+                    advancedHtml = `
+                        <div class="extra-box">
+                            <div class="section-title" style="margin-top:0;">進階資料 (遠離均線)</div>
+                            <div class="info-item">
+                                <span class="info-label">搜尋對象 (P)</span>
+                                <span class="info-value">${advancedStock[15] || '--'}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">狀態 (Q)</span>
+                                <span class="info-value" style="color: var(--error-color);">遠離均線 (${advancedStock[16] || '--'})</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
                 resultDiv.innerHTML = `
                     <div class="info-card">
                         <div class="section-title">基本選股資訊 (A-F)</div>
@@ -240,18 +261,7 @@
                             <span class="info-label">成本 (F)</span>
                             <span class="info-value">${stock[5] || '--'}</span>
                         </div>
-
-                        <div class="extra-box">
-                            <div class="section-title" style="margin-top:0;">進階資料 (P, Q)</div>
-                            <div class="info-item">
-                                <span class="info-label">P 欄資訊</span>
-                                <span class="info-value">${stock[15] || '--'}</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Q 欄資訊</span>
-                                <span class="info-value">${stock[16] || '--'}</span>
-                            </div>
-                        </div>
+                        ${advancedHtml}
                     </div>
                 `;
             } else {
