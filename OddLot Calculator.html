@@ -3,12 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>零股換算器_完美名稱版</title>
+    <title>投資雙生計算機</title>
     <style>
-        :root { --primary-color: #2c3e50; --accent-color: #1a73e8; --bg-color: #f1f3f4; }
+        :root { --primary-color: #2c3e50; --accent-color: #1a73e8; --bg-color: #f1f3f4; --manual-color: #0f9d58;}
         body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; background-color: var(--bg-color); display: flex; justify-content: center; padding: 20px; margin: 0; }
-        .container { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-        h2 { color: var(--primary-color); text-align: center; margin-bottom: 20px; }
+        
+        /* 建立一個外層容器，讓兩個計算機可以並列 */
+        .wrapper { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; width: 100%; max-width: 850px; }
+        
+        .container { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; flex: 1 1 350px; box-sizing: border-box; }
+        h2 { text-align: center; margin-bottom: 20px; }
+        .title-auto { color: var(--primary-color); }
+        .title-manual { color: var(--manual-color); }
+        
         .input-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; color: #555; }
         input { width: 100%; padding: 14px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box; font-size: 16px; background: #fafafa; }
@@ -17,9 +24,11 @@
         .amt-btn { padding: 8px 5px; font-size: 13px; background: #eee; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; color: #444; }
         .amt-btn:active { background: #d0d0d0; transform: scale(0.95); }
 
-        .main-btn { width: 100%; padding: 16px; background-color: var(--accent-color); color: white; border: none; border-radius: 12px; font-size: 18px; cursor: pointer; font-weight: bold; margin-top: 20px; }
+        .main-btn { width: 100%; padding: 16px; color: white; border: none; border-radius: 12px; font-size: 18px; cursor: pointer; font-weight: bold; margin-top: 20px; }
+        .btn-auto { background-color: var(--accent-color); }
+        .btn-manual { background-color: var(--manual-color); }
         
-        #result { margin-top: 25px; padding: 20px; background-color: #fff; border-radius: 15px; display: none; border: 1px solid #e8eaed; }
+        .result-box { margin-top: 25px; padding: 20px; background-color: #fff; border-radius: 15px; display: none; border: 1px solid #e8eaed; }
         .result-item { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 16px; }
         .highlight { font-weight: 800; color: #d93025; font-size: 1.5em; }
         .loading { text-align: center; color: var(--accent-color); display: none; margin-top: 15px; }
@@ -27,53 +36,115 @@
 </head>
 <body>
 
-<div class="container">
-    <h2>📈 零股換算器</h2>
-    
-    <div class="input-group">
-        <label>股票代號 (台股/美股皆可)</label>
-        <input type="text" id="stockSymbol" placeholder="例如: 1514 或 8299">
-    </div>
+<div class="wrapper">
+    <!-- 左側：原本的零股換算器 (自動抓價) -->
+    <div class="container">
+        <h2 class="title-auto">📈 零股換算器 (自動)</h2>
+        
+        <div class="input-group">
+            <label>股票代號 (台股/美股皆可)</label>
+            <input type="text" id="stockSymbol" placeholder="例如: 1514 或 8299">
+        </div>
 
-    <div class="input-group">
-        <label>欲投入金額</label>
-        <input type="number" id="budget" placeholder="請輸入金額">
-        <div class="quick-amounts">
-            <button class="amt-btn" onclick="setAmount(5000)">5000</button>
-            <button class="amt-btn" onclick="setAmount(10000)">1萬</button>
-            <button class="amt-btn" onclick="setAmount(20000)">2萬</button>
-            <button class="amt-btn" onclick="setAmount(50000)">5萬</button>
+        <div class="input-group">
+            <label>欲投入金額</label>
+            <input type="number" id="budget" placeholder="請輸入金額">
+            <div class="quick-amounts">
+                <button class="amt-btn" onclick="setAmount('budget', 5000)">5000</button>
+                <button class="amt-btn" onclick="setAmount('budget', 10000)">1萬</button>
+                <button class="amt-btn" onclick="setAmount('budget', 20000)">2萬</button>
+                <button class="amt-btn" onclick="setAmount('budget', 50000)">5萬</button>
+            </div>
+        </div>
+
+        <button class="main-btn btn-auto" onclick="fetchStockData()">網路抓價計算</button>
+        <div id="loading" class="loading">正在搜尋數據...</div>
+
+        <div id="resultAuto" class="result-box">
+            <div class="result-item">
+                <span style="color:#777">代號/名稱</span>
+                <span id="displaySymbol" style="font-weight:600; color:#1a73e8;">-</span>
+            </div>
+            <div class="result-item">
+                <span style="color:#777">目前股價</span>
+                <span id="displayPrice" style="font-weight:600">-</span>
+            </div>
+            <div class="result-item" style="border:none; margin-top:10px;">
+                <span style="color:#777">可買零股</span>
+                <span id="displayShares" class="highlight">0 股</span>
+            </div>
         </div>
     </div>
 
-    <button class="main-btn" onclick="fetchStockData()">開始計算</button>
-    <div id="loading" class="loading">正在搜尋數據...</div>
+    <!-- 右側：新增的股數計算機 (手動輸入) -->
+    <div class="container">
+        <h2 class="title-manual">🧮 股數計算機 (手動)</h2>
+        
+        <div class="input-group">
+            <label>現在股價</label>
+            <input type="number" id="manualPrice" placeholder="請輸入當前股價">
+        </div>
 
-    <div id="result">
-        <div class="result-item">
-            <span style="color:#777">代號/名稱</span>
-            <span id="displaySymbol" style="font-weight:600; color:#1a73e8;">-</span>
+        <div class="input-group">
+            <label>資金預算</label>
+            <input type="number" id="manualBudget" placeholder="請輸入預算">
+            <div class="quick-amounts">
+                <!-- 依照您的要求，提供 5000, 10000, 20000 的快速選項 -->
+                <button class="amt-btn" onclick="setAmount('manualBudget', 5000)">5000</button>
+                <button class="amt-btn" onclick="setAmount('manualBudget', 10000)">1萬</button>
+                <button class="amt-btn" onclick="setAmount('manualBudget', 20000)">2萬</button>
+                <!-- 補一個清除鍵方便重來 -->
+                <button class="amt-btn" onclick="document.getElementById('manualBudget').value=''">清除</button>
+            </div>
         </div>
-        <div class="result-item">
-            <span style="color:#777">目前股價</span>
-            <span id="displayPrice" style="font-weight:600">-</span>
-        </div>
-        <div class="result-item" style="border:none; margin-top:10px;">
-            <span style="color:#777">可買零股</span>
-            <span id="displayShares" class="highlight">0 股</span>
+
+        <button class="main-btn btn-manual" onclick="calculateManual()">立即計算</button>
+
+        <div id="resultManual" class="result-box">
+            <div class="result-item">
+                <span style="color:#777">輸入股價</span>
+                <span id="manualDisplayPrice" style="font-weight:600; color:var(--manual-color);">-</span>
+            </div>
+            <div class="result-item" style="border:none; margin-top:10px;">
+                <span style="color:#777">可買零股</span>
+                <span id="manualDisplayShares" class="highlight">0 股</span>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-    function setAmount(val) {
-        document.getElementById('budget').value = val;
+    // 共用的金額設定函數，多傳入了一個 targetId 來判斷要設定哪一個輸入框
+    function setAmount(targetId, val) {
+        document.getElementById(targetId).value = val;
     }
 
-    // 將搜尋名稱與抓取股價兩個動作整合
+    // ==========================================
+    // 區塊 1：新增的手動股數計算機邏輯
+    // ==========================================
+    function calculateManual() {
+        const price = parseFloat(document.getElementById('manualPrice').value);
+        const budget = parseFloat(document.getElementById('manualBudget').value);
+        const resultDiv = document.getElementById('resultManual');
+
+        if (!price || !budget || price <= 0) {
+            alert('請完整填寫大於 0 的股價與預算！');
+            return;
+        }
+
+        const shares = (budget / price).toFixed(1); // 保留小數點第一位
+
+        document.getElementById('manualDisplayPrice').innerText = `$${price.toLocaleString()}`;
+        document.getElementById('manualDisplayShares').innerText = `${shares.toLocaleString()} 股`;
+        
+        resultDiv.style.display = 'block';
+    }
+
+    // ==========================================
+    // 區塊 2：原本的自動網路抓價邏輯 (維持您提供的版本)
+    // ==========================================
     async function getStockInfo(input) {
         try {
-            // 第 1 步：先透過 Yahoo 搜尋 API 找出正確的代號與「中文名稱」
             const searchUrl = `https://query2.finance.yahoo.com/v1/finance/search?q=${input}&lang=zh-Hant-TW&region=TW`;
             const searchProxy = `https://api.allorigins.win/get?url=${encodeURIComponent(searchUrl)}`;
             
@@ -83,12 +154,10 @@
             
             if (!searchData.quotes || searchData.quotes.length === 0) return null;
             
-            // 取得最佳配對結果
             const quote = searchData.quotes[0];
             const finalSymbol = quote.symbol; 
             const chineseName = quote.shortname || quote.longname || finalSymbol;
 
-            // 第 2 步：用拿到的精確代號去查股價 (v8 API 最穩定)
             const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${finalSymbol}?interval=1m&range=1d`;
             const chartProxy = `https://api.allorigins.win/get?url=${encodeURIComponent(chartUrl)}`;
             
@@ -115,7 +184,7 @@
         let inputSymbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
         const budget = parseFloat(document.getElementById('budget').value);
         const loading = document.getElementById('loading');
-        const resultDiv = document.getElementById('result');
+        const resultDiv = document.getElementById('resultAuto');
 
         if (!inputSymbol || !budget) {
             alert('請填寫代號與金額');
@@ -126,14 +195,12 @@
         resultDiv.style.display = 'none';
 
         try {
-            // 直接將使用者輸入的代碼丟給智慧搜尋 API
             const stockData = await getStockInfo(inputSymbol);
 
             if (stockData && stockData.price) {
                 const price = stockData.price;
-                const shares = (budget / price).toFixed(1); // 保留小數點第一位
+                const shares = (budget / price).toFixed(1); 
                 
-                // 組合顯示名稱，例如：亞力 (1514.TW)
                 const displayName = `${stockData.name} (${stockData.symbol})`;
 
                 document.getElementById('displaySymbol').innerText = displayName;
