@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amanda 選股查詢系統</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --error-color: #e74c3c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 2rem;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            border-color: var(--accent-color);
+        }
+
+        button {
+            padding: 12px 25px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        #result {
+            margin-top: 1rem;
+            text-align: left;
+            min-height: 150px;
+        }
+
+        .info-card {
+            border-left: 5px solid var(--accent-color);
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .info-item {
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dashed #eee;
+            padding-bottom: 5px;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #7f8c8d;
+        }
+
+        .info-value {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .not-found {
+            color: var(--error-color);
+            font-weight: bold;
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 1.2rem;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        .loading {
+            color: #95a5a6;
+            font-style: italic;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Amanda 選股查詢</h1>
+    <div class="search-box">
+        <input type="text" id="stockCode" placeholder="請輸入股票代碼 (例如: 2330)" autofocus>
+        <button onclick="searchStock()">查詢</button>
+    </div>
+    <div id="result"></div>
+</div>
+
+<script>
+    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1Bl9SRtxSp2StQH99wPLn8TyfvSYRlyHu6-tIS2F_UHg/gviz/tq?tqx=out:csv&sheet=Amanda';
+
+    // 監聽 Enter 鍵
+    document.getElementById('stockCode').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            searchStock();
+        }
+    });
+
+    async function searchStock() {
+        const inputCode = document.getElementById('stockCode').value.trim();
+        const resultDiv = document.getElementById('result');
+
+        if (!inputCode) {
+            resultDiv.innerHTML = '<p style="color: #7f8c8d; text-align: center;">請輸入代碼以開始查詢</p>';
+            return;
+        }
+
+        resultDiv.innerHTML = '<p class="loading" style="text-align: center;">正在連線到 Google Sheet...</p>';
+
+        try {
+            const response = await fetch(SHEET_URL);
+            if (!response.ok) throw new Error('無法讀取資料庫');
+            
+            const csvText = await response.text();
+            const data = parseCSV(csvText);
+            
+            // 資料欄位對應: A:0, B:1, C:2, D:3, E:4, F:5
+            // 找出代碼符合的行
+            const stock = data.find(row => row[0] === inputCode);
+
+            if (stock) {
+                resultDiv.innerHTML = `
+                    <div class="info-card">
+                        <div class="info-item">
+                            <span class="info-label">代碼</span>
+                            <span class="info-value">${stock[0]}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">商品</span>
+                            <span class="info-value">${stock[1] || '--'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">選入日期</span>
+                            <span class="info-value">${stock[2] || '--'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">昨收</span>
+                            <span class="info-value">${stock[3] || '--'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">均價</span>
+                            <span class="info-value">${stock[4] || '--'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">成本</span>
+                            <span class="info-value">${stock[5] || '--'}</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = '<p class="not-found">顯示不在選股中</p>';
+            }
+        } catch (error) {
+            console.error(error);
+            resultDiv.innerHTML = '<p class="not-found" style="font-size: 0.9rem;">查詢失敗，請檢查網路連線或試算表狀態</p>';
+        }
+    }
+
+    // 簡易 CSV 解析器，處理基本 CSV 格式
+    function parseCSV(text) {
+        const lines = text.split(/\r?\n/);
+        return lines.map(line => {
+            // 處理 Google Sheets 輸出的 CSV，包含引號
+            const parts = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let char of line) {
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    parts.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            parts.push(current.trim());
+            return parts;
+        });
+    }
+</script>
+
+</body>
+</html>
