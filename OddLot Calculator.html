@@ -32,7 +32,7 @@
     
     <div class="input-group">
         <label>股票代號 (上市/上櫃皆可)</label>
-        <input type="text" id="stockSymbol" placeholder="例如: 2330 或 8299">
+        <input type="text" id="stockSymbol" placeholder="例如: 2330 或 1514">
     </div>
 
     <div class="input-group">
@@ -70,11 +70,10 @@
         document.getElementById('budget').value = val;
     }
 
-    // 改用 AllOrigins 作為 Proxy，並增加超時防護
-    async function getYahooPrice(symbol) {
+    // 改用 v7 Quote API，這個接口能同時抓到股價與「中文公司名稱」
+    async function getStockInfo(symbol) {
         try {
-            const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1m&range=1d`;
-            // AllOrigins 是一個更穩定、對企業防火牆容忍度較高的轉接服務
+            const targetUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}`;
             const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
             
             const response = await fetch(proxyUrl);
@@ -82,11 +81,15 @@
             
             const rawData = await response.json();
             
-            // AllOrigins 會把目標網頁的內容包在 contents 屬性裡，需要解析一次
             if (rawData && rawData.contents) {
                 const parsedData = JSON.parse(rawData.contents);
-                if (parsedData.chart && parsedData.chart.result) {
-                    return parsedData.chart.result[0].meta.regularMarketPrice;
+                if (parsedData.quoteResponse && parsedData.quoteResponse.result && parsedData.quoteResponse.result.length > 0) {
+                    const quote = parsedData.quoteResponse.result[0];
+                    return {
+                        price: quote.regularMarketPrice,
+                        // 優先抓取中文簡稱 (shortName)，沒有就抓全名 (longName)
+                        name: quote.shortName || quote.longName || symbol
+                    };
                 }
             }
             return null;
@@ -110,34 +113,30 @@
         loading.style.display = 'block';
         resultDiv.style.display = 'none';
 
-        let price = null;
+        let stockData = null;
         let finalSymbol = inputSymbol;
 
         try {
             if (/^\d+$/.test(inputSymbol)) {
                 // 先嘗試上市 (.TW)
-                price = await getYahooPrice(inputSymbol + ".TW");
+                stockData = await getStockInfo(inputSymbol + ".TW");
                 finalSymbol = inputSymbol + ".TW";
                 
                 // 如果查不到，改嘗試上櫃 (.TWO)
-                if (!price) {
-                    price = await getYahooPrice(inputSymbol + ".TWO");
+                if (!stockData) {
+                    stockData = await getStockInfo(inputSymbol + ".TWO");
                     finalSymbol = inputSymbol + ".TWO";
                 }
             } else {
-                price = await getYahooPrice(inputSymbol);
+                stockData = await getStockInfo(inputSymbol);
             }
 
-            if (price) {
-                const shares = (budget / price).toFixed(1);
-                const nameMap = {
-                    "2330.TW": "台積電 (2330)",
-                    "2454.TW": "聯發科 (2454)",
-                    "8299.TWO": "群聯 (8299)",
-                    "2317.TW": "鴻海 (2317)"
-                };
-
-                const displayName = nameMap[finalSymbol] || finalSymbol;
+            if (stockData && stockData.price) {
+                const price = stockData.price;
+                const shares = (budget / price).toFixed(1); // 保留小數點第一位
+                
+                // 自動組合名稱，例如：亞力電機 (1514.TW)
+                const displayName = stockData.name !== finalSymbol ? `${stockData.name} (${finalSymbol})` : finalSymbol;
 
                 document.getElementById('displaySymbol').innerText = displayName;
                 document.getElementById('displayPrice').innerText = `$${price.toLocaleString()}`;
