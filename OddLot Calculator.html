@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>零股換算器_20260506</title>
+    <title>零股換算器_完美名稱版</title>
     <style>
         :root { --primary-color: #2c3e50; --accent-color: #1a73e8; --bg-color: #f1f3f4; }
         body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; background-color: var(--bg-color); display: flex; justify-content: center; padding: 20px; margin: 0; }
@@ -31,8 +31,8 @@
     <h2>📈 零股換算器</h2>
     
     <div class="input-group">
-        <label>股票代號 (上市/上櫃皆可)</label>
-        <input type="text" id="stockSymbol" placeholder="例如: 2330 或 1514">
+        <label>股票代號 (台股/美股皆可)</label>
+        <input type="text" id="stockSymbol" placeholder="例如: 1514 或 8299">
     </div>
 
     <div class="input-group">
@@ -70,27 +70,39 @@
         document.getElementById('budget').value = val;
     }
 
-    // 改用 v7 Quote API，這個接口能同時抓到股價與「中文公司名稱」
-    async function getStockInfo(symbol) {
+    // 將搜尋名稱與抓取股價兩個動作整合
+    async function getStockInfo(input) {
         try {
-            const targetUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}`;
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+            // 第 1 步：先透過 Yahoo 搜尋 API 找出正確的代號與「中文名稱」
+            const searchUrl = `https://query2.finance.yahoo.com/v1/finance/search?q=${input}&lang=zh-Hant-TW&region=TW`;
+            const searchProxy = `https://api.allorigins.win/get?url=${encodeURIComponent(searchUrl)}`;
             
-            const response = await fetch(proxyUrl);
-            if (!response.ok) return null;
+            const searchRes = await fetch(searchProxy);
+            const searchRaw = await searchRes.json();
+            const searchData = JSON.parse(searchRaw.contents);
             
-            const rawData = await response.json();
+            if (!searchData.quotes || searchData.quotes.length === 0) return null;
             
-            if (rawData && rawData.contents) {
-                const parsedData = JSON.parse(rawData.contents);
-                if (parsedData.quoteResponse && parsedData.quoteResponse.result && parsedData.quoteResponse.result.length > 0) {
-                    const quote = parsedData.quoteResponse.result[0];
-                    return {
-                        price: quote.regularMarketPrice,
-                        // 優先抓取中文簡稱 (shortName)，沒有就抓全名 (longName)
-                        name: quote.shortName || quote.longName || symbol
-                    };
-                }
+            // 取得最佳配對結果
+            const quote = searchData.quotes[0];
+            const finalSymbol = quote.symbol; 
+            const chineseName = quote.shortname || quote.longname || finalSymbol;
+
+            // 第 2 步：用拿到的精確代號去查股價 (v8 API 最穩定)
+            const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${finalSymbol}?interval=1m&range=1d`;
+            const chartProxy = `https://api.allorigins.win/get?url=${encodeURIComponent(chartUrl)}`;
+            
+            const chartRes = await fetch(chartProxy);
+            const chartRaw = await chartRes.json();
+            const chartData = JSON.parse(chartRaw.contents);
+            
+            if (chartData.chart && chartData.chart.result) {
+                const price = chartData.chart.result[0].meta.regularMarketPrice;
+                return {
+                    symbol: finalSymbol,
+                    name: chineseName,
+                    price: price
+                };
             }
             return null;
         } catch (e) {
@@ -113,30 +125,16 @@
         loading.style.display = 'block';
         resultDiv.style.display = 'none';
 
-        let stockData = null;
-        let finalSymbol = inputSymbol;
-
         try {
-            if (/^\d+$/.test(inputSymbol)) {
-                // 先嘗試上市 (.TW)
-                stockData = await getStockInfo(inputSymbol + ".TW");
-                finalSymbol = inputSymbol + ".TW";
-                
-                // 如果查不到，改嘗試上櫃 (.TWO)
-                if (!stockData) {
-                    stockData = await getStockInfo(inputSymbol + ".TWO");
-                    finalSymbol = inputSymbol + ".TWO";
-                }
-            } else {
-                stockData = await getStockInfo(inputSymbol);
-            }
+            // 直接將使用者輸入的代碼丟給智慧搜尋 API
+            const stockData = await getStockInfo(inputSymbol);
 
             if (stockData && stockData.price) {
                 const price = stockData.price;
                 const shares = (budget / price).toFixed(1); // 保留小數點第一位
                 
-                // 自動組合名稱，例如：亞力電機 (1514.TW)
-                const displayName = stockData.name !== finalSymbol ? `${stockData.name} (${finalSymbol})` : finalSymbol;
+                // 組合顯示名稱，例如：亞力 (1514.TW)
+                const displayName = `${stockData.name} (${stockData.symbol})`;
 
                 document.getElementById('displaySymbol').innerText = displayName;
                 document.getElementById('displayPrice').innerText = `$${price.toLocaleString()}`;
@@ -144,7 +142,7 @@
                 
                 resultDiv.style.display = 'block';
             } else {
-                alert(`查詢失敗！\n1. 請確認代號正確\n2. 可能是 Proxy 伺服器忙碌\n3. 如果您使用公司 Wi-Fi，建議切換至 5G 網路再試。`);
+                alert(`查詢失敗！找不到代號 ${inputSymbol}，請確認代碼是否正確。`);
             }
         } finally {
             loading.style.display = 'none';
