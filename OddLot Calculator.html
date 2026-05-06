@@ -19,7 +19,7 @@
         .tab-btn.auto.active { background-color: var(--accent-color); color: white; }
 
         .container { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); display: none; }
-        .container.active { display: block; } /* 只有帶有 active 的容器才會顯示 */
+        .container.active { display: block; } 
         
         .input-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; color: #555; }
@@ -58,8 +58,11 @@
     <div id="containerManual" class="container active">
         <div class="input-group">
             <label>現在股價</label>
-            <!-- 加入 onkeypress 阻擋非數字按鍵 -->
-            <input type="number" id="manualPrice" placeholder="請輸入當前股價" inputmode="decimal" onkeypress="return isNumberKey(event)">
+            <!-- 將輸入框與清除按鈕並排顯示 -->
+            <div style="display: flex; gap: 8px; align-items: stretch;">
+                <input type="number" id="manualPrice" placeholder="請輸入當前股價" inputmode="decimal" onkeypress="return isNumberKey(event)">
+                <button class="amt-btn" style="white-space: nowrap; padding: 0 15px; margin: 0;" onclick="document.getElementById('manualPrice').value=''">清除</button>
+            </div>
         </div>
 
         <div class="input-group">
@@ -91,7 +94,6 @@
     <div id="containerAuto" class="container">
         <div class="input-group">
             <label>股票代號 (台/美股皆可)</label>
-            <!-- 股票代號可能包含英文字母 (如 TSLA)，所以這裡不用數字防護 -->
             <input type="text" id="stockSymbol" placeholder="例如: 1514 或 TSLA">
         </div>
 
@@ -102,7 +104,7 @@
                 <button class="amt-btn" onclick="setAmount('budget', 5000)">5000</button>
                 <button class="amt-btn" onclick="setAmount('budget', 10000)">1萬</button>
                 <button class="amt-btn" onclick="setAmount('budget', 20000)">2萬</button>
-                <button class="amt-btn" onclick="setAmount('budget', 50000)">5萬</button>
+                <button class="amt-btn" onclick="document.getElementById('budget').value=''">清除</button>
             </div>
         </div>
 
@@ -131,25 +133,20 @@
     // UI 控制邏輯：頁籤切換與防護
     // ==========================================
     
-    // 阻擋鍵盤輸入非數字與小數點 (防護 e, -, + 等字元)
     function isNumberKey(evt) {
         var charCode = (evt.which) ? evt.which : evt.keyCode;
-        // 允許輸入數字 (48-57) 與 小數點 (46)
         if (charCode != 46 && charCode > 31 && (charCode < 48 || charCode > 57)) {
             return false;
         }
         return true;
     }
 
-    // 切換計算機頁籤
     function switchTab(tabName) {
-        // 重置所有狀態
         document.getElementById('tabManual').classList.remove('active');
         document.getElementById('tabAuto').classList.remove('active');
         document.getElementById('containerManual').classList.remove('active');
         document.getElementById('containerAuto').classList.remove('active');
 
-        // 啟動目標狀態
         if (tabName === 'manual') {
             document.getElementById('tabManual').classList.add('active');
             document.getElementById('containerManual').classList.add('active');
