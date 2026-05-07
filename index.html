@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>股票查詢工具箱 | Stock Tools Portal</title>
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-main: #2d3436;
+            --text-sub: #636e72;
+            --shadow: 0 10px 20px rgba(0,0,0,0.05);
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            color: var(--text-sub);
+            font-size: 1.1rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            text-decoration: none;
+            color: inherit;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.03);
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(108, 92, 231, 0.15);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: var(--primary-gradient);
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #2d3436;
+        }
+
+        .card-desc {
+            font-size: 0.95rem;
+            color: var(--text-sub);
+            line-height: 1.6;
+            margin-bottom: 20px;
+            flex-grow: 1;
+        }
+
+        .card-action {
+            display: flex;
+            align-items: center;
+            color: #6c5ce7;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .card-action::after {
+            content: ' →';
+            margin-left: 5px;
+            transition: margin-left 0.3s;
+        }
+
+        .card:hover .card-action::after {
+            margin-left: 10px;
+        }
+
+        footer {
+            margin-top: auto;
+            padding: 40px 0;
+            color: #b2bec3;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 1.8rem; }
+            .grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>股票查詢工具箱</h1>
+        <p class="subtitle">專業、快速、直覺的股票分析工具</p>
+    </header>
+
+    <div class="grid">
+        <!-- Amanda Stock Search -->
+        <a href="https://andersontsai-android.github.io/IOS_App/amanda-stock-search.html" class="card">
+            <div class="card-icon">📊</div>
+            <div class="card-title">Amanda 股票查詢</div>
+            <div class="card-desc">快速查詢個股基本資料與成本結構，優化手機輸入體驗，適合每日盤後快速複習。</div>
+            <div class="card-action">立即進入</div>
+        </a>
+
+        <!-- Broken Line Search -->
+        <a href="https://andersontsai-android.github.io/IOS_App/broken-line-search.html" class="card">
+            <div class="card-icon">📈</div>
+            <div class="card-title">是否破線 查詢</div>
+            <div class="card-desc">判定股票是否偏離均線，整合 P/Q 欄位連動邏輯，提供遠離均線清單快速掃描。</div>
+            <div class="card-action">立即進入</div>
+        </a>
+
+        <!-- Qunyi Inventory Filter -->
+        <a href="https://andersontsai-android.github.io/IOS_App/qunyi-inventory-filter.html" class="card">
+            <div class="card-icon">📋</div>
+            <div class="card-title">群益庫存 篩選</div>
+            <div class="card-desc">強大的庫存管理工具。支援報酬率、損益、成本多重篩選，具備全欄位排序與 ETF 過濾功能。</div>
+            <div class="card-action">立即進入</div>
+        </a>
+    </div>
+
+    <footer>
+        &copy; 2026 Anderson Tsai. All rights reserved.
+    </footer>
+
+</body>
+</html>
