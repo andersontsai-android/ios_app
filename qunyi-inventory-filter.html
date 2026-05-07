@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>群益庫存 篩選系統</title>
+    <style>
+        :root {
+            --primary-color: #0984e3; /* Ocean Blue */
+            --bg-color: #f5f6fa;
+            --card-bg: #ffffff;
+            --text-color: #2f3640;
+            --accent-color: #74b9ff;
+            --border-color: #dcdde1;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 2rem;
+        }
+
+        /* Tabs Styling */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 5px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #7f8c8d;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+            background-color: rgba(9, 132, 227, 0.05);
+        }
+
+        /* Filter Section */
+        .filter-section {
+            display: none;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .filter-section.active {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        select {
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            font-size: 1rem;
+            outline: none;
+            min-width: 200px;
+        }
+
+        /* Table Styling */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 0.95rem;
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            text-align: left;
+            padding: 12px;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            white-space: nowrap;
+        }
+
+        tr:hover {
+            background-color: #f1f2f6;
+        }
+
+        .positive { color: #e74c3c; font-weight: bold; }
+        .negative { color: #2ecc71; font-weight: bold; }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #95a5a6;
+            font-style: italic;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @media (max-width: 600px) {
+            .container { padding: 1rem; }
+            .tabs { flex-direction: column; border-bottom: none; }
+            .tab { border-radius: 8px; border: 1px solid #eee; text-align: center; }
+            .tab.active { border-bottom: 1px solid var(--primary-color); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>群益庫存 篩選系統</h1>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab(0)">試算報酬率 (%)</div>
+        <div class="tab" onclick="switchTab(1)">損益 (元)</div>
+        <div class="tab" onclick="switchTab(2)">付出成本 (元)</div>
+    </div>
+
+    <!-- Filter 1: ROI -->
+    <div id="filter-roi" class="filter-section active">
+        <label>條件：</label>
+        <select id="select-roi" onchange="applyFilter()">
+            <option value="all">-- 全部 --</option>
+            <option value=">10">> 10%</option>
+            <option value=">20">> 20%</option>
+            <option value=">30">> 30%</option>
+            <option value=">50">> 50%</option>
+            <option value=">100">> 100%</option>
+            <option value="<-15">< -15%</option>
+            <option value="<-20">< -20%</option>
+            <option value="<-25">< -25%</option>
+            <option value="<-30">< -30%</option>
+            <option value="<-50">< -50%</option>
+            <option value="<-100">< -100%</option>
+        </select>
+    </div>
+
+    <!-- Filter 2: P/L -->
+    <div id="filter-pl" class="filter-section">
+        <label>條件：</label>
+        <select id="select-pl" onchange="applyFilter()">
+            <option value="all">-- 全部 --</option>
+            <option value=">1000">> 1000</option>
+            <option value=">2000">> 2000</option>
+            <option value=">2500">> 2500</option>
+            <option value=">5000">> 5000</option>
+            <option value=">7500">> 7500</option>
+            <option value="<-2500">< -2500</option>
+            <option value="<-5000">< -5000</option>
+            <option value="<-10000">< -10000</option>
+            <option value="<-20000">< -20000</option>
+            <option value="<-25000">< -25000</option>
+            <option value="<-50000">< -50000</option>
+        </select>
+    </div>
+
+    <!-- Filter 3: Cost -->
+    <div id="filter-cost" class="filter-section">
+        <label>條件：</label>
+        <select id="select-cost" onchange="applyFilter()">
+            <option value="all">-- 全部 --</option>
+            <option value="<5000">< 5000</option>
+            <option value="<4000">< 4000</option>
+            <option value="<10000">< 10000</option>
+            <option value="<15000">< 15000</option>
+            <option value="<17500">< 17500</option>
+            <option value="<20000">< 20000</option>
+            <option value="<25000">< 25000</option>
+            <option value="<30000">< 30000</option>
+            <option value=">50000">> 50000</option>
+        </select>
+    </div>
+
+    <div class="table-container">
+        <table id="inventory-table">
+            <thead>
+                <tr>
+                    <th>股票名稱 (B)</th>
+                    <th>股數 (E)</th>
+                    <th>付出成本 (F)</th>
+                    <th>均價 (G)</th>
+                    <th>市價 (I)</th>
+                    <th>漲跌 (J)</th>
+                    <th>市值 (K)</th>
+                    <th>淨值 (L)</th>
+                    <th>損益 (M)</th>
+                    <th>報酬率 (N)</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                <!-- Data injected here -->
+            </tbody>
+        </table>
+        <div id="status" class="loading">正在連線至 Google Sheet...</div>
+    </div>
+</div>
+
+<script>
+    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1Bl9SRtxSp2StQH99wPLn8TyfvSYRlyHu6-tIS2F_UHg/gviz/tq?tqx=out:csv&sheet=%E7%BE%A4%E7%9B%8A%E5%BA%AB%E5%AD%98';
+    let rawData = [];
+    let currentTabIndex = 0;
+
+    const filters = [
+        { id: 'filter-roi', select: 'select-roi' },
+        { id: 'filter-pl', select: 'select-pl' },
+        { id: 'filter-cost', select: 'select-cost' }
+    ];
+
+    window.onload = init;
+
+    async function init() {
+        try {
+            const response = await fetch(SHEET_URL);
+            if (!response.ok) throw new Error('無法讀取資料');
+            const csvText = await response.text();
+            const lines = parseCSV(csvText);
+            
+            // 跳過標題列
+            rawData = lines.slice(1);
+            document.getElementById('status').style.display = 'none';
+            applyFilter();
+        } catch (err) {
+            console.error(err);
+            document.getElementById('status').innerText = '讀取失敗，請確認網路連線';
+        }
+    }
+
+    function switchTab(index) {
+        currentTabIndex = index;
+        document.querySelectorAll('.tab').forEach((t, i) => {
+            t.classList.toggle('active', i === index);
+        });
+        document.querySelectorAll('.filter-section').forEach((s, i) => {
+            s.classList.toggle('active', i === index);
+        });
+        applyFilter();
+    }
+
+    function applyFilter() {
+        const selectId = filters[currentTabIndex].select;
+        const condition = document.getElementById(selectId).value;
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = '';
+
+        const filtered = rawData.filter(row => {
+            if (condition === 'all') return true;
+
+            // 欄位對應: ROI:13, PL:12, Cost:5
+            let val;
+            if (currentTabIndex === 0) val = parseNumber(row[13]); // ROI
+            else if (currentTabIndex === 1) val = parseNumber(row[12]); // PL
+            else val = parseNumber(row[5]); // Cost
+
+            if (isNaN(val)) return false;
+
+            const operator = condition.startsWith('>') ? '>' : '<';
+            const threshold = parseFloat(condition.slice(1));
+
+            if (operator === '>') return val > threshold;
+            if (operator === '<') return val < threshold;
+            return true;
+        });
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center">沒有符合條件的資料</td></tr>';
+            return;
+        }
+
+        filtered.forEach(row => {
+            const tr = document.createElement('tr');
+            // 指定顯示 B(1), E(4), F(5), G(6), I(8), J(9), K(10), L(11), M(12), N(13)
+            const indices = [1, 4, 5, 6, 8, 9, 10, 11, 12, 13];
+            
+            indices.forEach((idx, i) => {
+                const td = document.createElement('td');
+                let cellVal = row[idx] || '--';
+                
+                // 損益 (M:12) 與 報酬率 (N:13) 著色
+                if (idx === 12 || idx === 13) {
+                    const num = parseNumber(cellVal);
+                    if (num > 0) td.className = 'positive';
+                    else if (num < 0) td.className = 'negative';
+                }
+                
+                td.innerText = cellVal;
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Helper: 數字解析 (移除 , % 等符號)
+    function parseNumber(str) {
+        if (!str) return NaN;
+        // 處理 Google Sheet 格式: "▲0.86", "▼0.45", "-224", "21.85%"
+        let clean = str.replace(/[▲▼,%\s]/g, '');
+        return parseFloat(clean);
+    }
+
+    // 簡易 CSV 解析器
+    function parseCSV(text) {
+        const lines = text.split(/\r?\n/);
+        return lines.map(line => {
+            const parts = [];
+            let current = '';
+            let inQuotes = false;
+            for (let char of line) {
+                if (char === '"') inQuotes = !inQuotes;
+                else if (char === ',' && !inQuotes) { parts.push(current.trim()); current = ''; }
+                else current += char;
+            }
+            parts.push(current.trim());
+            return parts;
+        });
+    }
+</script>
+
+</body>
+</html>
