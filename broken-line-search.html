@@ -35,15 +35,15 @@
             width: 100%;
             max-width: 600px;
             text-align: center;
-            position: relative; /* ?箔?霈??詨摰? */
+            position: relative;
         }
 
-        /* ?喃?閫??詨璅?? */
+        /* ?喃?閫??詨 */
         .filter-count {
             position: absolute;
             top: 15px;
             right: 25px;
-            font-size: 2.8rem; /* 憭批?擃?*/
+            font-size: 2.8rem;
             font-weight: 800;
             color: var(--accent-color);
             background: rgba(255, 255, 255, 0.9);
@@ -51,7 +51,7 @@
             border-radius: 8px;
             z-index: 100;
             line-height: 1;
-            pointer-events: none; /* ?脫迫?格?暺? */
+            pointer-events: none;
         }
 
         h1 {
@@ -186,7 +186,6 @@
 <body>
 
 <div class="container">
-    <!-- ?喃?閫??詨 -->
     <div id="filter-count" class="filter-count" style="display: none;">0</div>
 
     <h1>?臬?渡? ?亥岷蝟餌絞</h1>
@@ -196,7 +195,6 @@
         <div class="tab" onclick="switchTab('list-tab')">?渡??</div>
     </div>
 
-    <!-- Tab 1: Search System -->
     <div id="search-tab" class="tab-content active">
         <div class="search-box">
             <input type="number" id="stockCode" placeholder="頛詨隞?Ⅳ (靘?: 1303)" inputmode="numeric" autofocus>
@@ -205,7 +203,6 @@
         <div id="result"></div>
     </div>
 
-    <!-- Tab 2: Full List -->
     <div id="list-tab" class="tab-content">
         <div id="list-result">
             <p class="loading">甇?頛皜...</p>
@@ -217,7 +214,6 @@
     const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1Bl9SRtxSp2StQH99wPLn8TyfvSYRlyHu6-tIS2F_UHg/gviz/tq?tqx=out:csv&sheet=%E6%98%AF%E5%90%A6%E7%A0%B4%E7%B7%9A';
     let cachedData = null;
 
-    // Tab Switching
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -229,7 +225,6 @@
         if (tabId === 'list-tab') {
             renderFullList();
         } else {
-            // ????撠????梯?閮??
             if (countDiv) countDiv.style.display = 'none';
         }
     }
@@ -262,20 +257,19 @@
                 const advancedStock = data.find(row => row[15] === fullStockName);
 
                 let statusValue = stock[3] || '--';
-                let costValue = stock[5] || '--';
 
                 if (advancedStock) {
-                    statusValue = `<span style="color: var(--error-color);">?渡??, 撱箄降??${advancedStock[16] || '--'}</span>`;
+                    statusValue = `<span style="color: var(--error-color);">???, ???${advancedStock[16] || '--'}</span>`;
                 }
 
                 resultDiv.innerHTML = `
                     <div class="info-card">
-                        <div class="info-item"><span class="info-label">?∪??迂</span><span class="info-value">${stock[0]}</span></div>
+                        <div class="info-item"><span class="info-label">?∠巨?迂</span><span class="info-value">${stock[0]}</span></div>
                         <div class="info-item"><span class="info-label">隞?Ⅳ</span><span class="info-value">${stock[1]}</span></div>
                         <div class="info-item"><span class="info-label">?曉</span><span class="info-value">${stock[2]}</span></div>
-                        <div class="info-item"><span class="info-label">?臬?渡?</span><span class="info-value">${statusValue}</span></div>
-                        <div class="info-item"><span class="info-label">??</span><span class="info-value">${stock[4]}</span></div>
-                        <div class="info-item"><span class="info-label">撱箄降</span><span class="info-value">${costValue}</span></div>
+                        <div class="info-item"><span class="info-label">???????/span><span class="info-value">${statusValue}</span></div>
+                        <div class="info-item"><span class="info-label">??</span><span class="info-value">${stock[4]}</span></div>
+                        <div class="info-item"><span class="info-label">?</span><span class="info-value">${stock[5]}</span></div>
                     </div>
                 `;
             } else {
@@ -292,10 +286,8 @@
         
         try {
             const data = await fetchData();
-            // 蝭拚 P ??Q 甈??潛?? (index 15, 16)
             const listItems = data.slice(1).filter(row => row[15] || row[16]);
 
-            // ?湔閮??
             countDiv.innerText = listItems.length;
             countDiv.style.display = 'block';
 
@@ -306,7 +298,7 @@
 
             let tableHtml = `
                 <table class="data-table">
-                    <thead><tr><th>?渡??∠巨 (P)</th><th>撱箄降/?暹? (Q)</th></tr></thead>
+                    <thead><tr><th>?渡??∠巨 (P)</th><th>?/?暹? (Q)</th></tr></thead>
                     <tbody>
                         ${listItems.map(row => `
                             <tr>
