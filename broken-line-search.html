@@ -307,13 +307,14 @@
 
     function renderTable(dataItems) {
         const listDiv = document.getElementById('list-result');
-        // Hardcoded labels for List (R-V)
+        // 100% User-specified Hardcoded Labels (R-V)
+        const headers = ["遠離均線34檔", "成本", "買入均價", "減碼賣出股數", "減碼到最小單位賣出股數"];
         let tableHtml = `<table class="data-table" id="main-table"><thead><tr>
-            <th onclick="sortTable(17)">股票名稱</th>
-            <th onclick="sortTable(18)">成本</th>
-            <th onclick="sortTable(19)">均價</th>
-            <th onclick="sortTable(20)">減碼賣出股數</th>
-            <th onclick="sortTable(21)">最小賣出股數</th>
+            <th onclick="sortTable(17)">${headers[0]}</th>
+            <th onclick="sortTable(18)">${headers[1]}</th>
+            <th onclick="sortTable(19)">${headers[2]}</th>
+            <th onclick="sortTable(20)">${headers[3]}</th>
+            <th onclick="sortTable(21)">${headers[4]}</th>
         </tr></thead><tbody>
         ${dataItems.map(row => `<tr>
             <td style="font-weight:600">${row[17] || '--'}</td>
