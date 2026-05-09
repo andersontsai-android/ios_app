@@ -230,7 +230,8 @@
 </div>
 
 <script>
-    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1Bl9SRtxSp2StQH99wPLn8TyfvSYRlyHu6-tIS2F_UHg/gviz/tq?tqx=out:csv&sheet=%E6%98%AF%E5%90%A6%E7%A0%B4%E7%B7%9A';
+    // 使用更穩定的 Export URL
+    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1Bl9SRtxSp2StQH99wPLn8TyfvSYRlyHu6-tIS2F_UHg/export?format=csv&sheet=%E6%98%AF%E5%90%A6%E7%A0%B4%E7%B7%9A';
     let cachedData = null;
     let listData = [];
     let sortDirection = {};
@@ -254,20 +255,6 @@
         return cachedData;
     }
 
-    // 真正的智慧標題抓取：排除數據列，優先抓取包含非數字文字的儲存格
-    function getHeaderName(data, columnIndex) {
-        for (let r = 0; r < Math.min(data.length, 10); r++) {
-            let val = data[r][columnIndex];
-            if (val && val.trim() !== "") {
-                // 如果內容包含中文字，則判定為標題
-                if (/[\u4E00-\u9FFF]/.test(val)) return val.trim();
-                // 否則，如果是純數字列，就繼續往下找，除非已經找到底了
-                if (!/^[0-9,.\-%]+$/.test(val.trim())) return val.trim();
-            }
-        }
-        return `欄位 ${String.fromCharCode(65 + columnIndex)}`;
-    }
-
     async function searchStock() {
         const inputCode = document.getElementById('stockCode').value.trim();
         const resultDiv = document.getElementById('result');
@@ -276,6 +263,7 @@
 
         try {
             const data = await fetchData();
+            const headers = data[0]; 
             const stock = data.find((row, idx) => idx > 0 && row[1] && row[1].toString().trim() === inputCode);
 
             if (stock) {
@@ -288,7 +276,7 @@
 
                 let infoItemsHtml = '';
                 for (let i = 0; i <= 7; i++) {
-                    let label = getHeaderName(data, i);
+                    let label = headers[i] || `欄位 ${String.fromCharCode(65 + i)}`;
                     let val = (i === 3) ? statusValue : (stock[i] || '--');
                     infoItemsHtml += `<div class="info-item"><span class="info-label">${label}</span><span class="info-value">${val}</span></div>`;
                 }
@@ -304,24 +292,25 @@
         const countDiv = document.getElementById('filter-count');
         try {
             const data = await fetchData();
-            // 名單改讀 R~V (17-21)
-            listData = data.slice(1).filter(row => row[17] && !/[\u4E00-\u9FFF]/.test(row[17])); 
+            const headers = data[0];
+            // 讀取 R~V (17-21)，排除標題列
+            listData = data.slice(1).filter(row => row[17]);
 
             countDiv.innerText = listData.length;
             countDiv.style.display = 'block';
             if (listData.length === 0) { listDiv.innerHTML = '<p class="not-found">目前無名單資料</p>'; return; }
-            renderTable(listData, data);
+            renderTable(listData, headers);
         } catch (e) { listDiv.innerHTML = '<p class="not-found">讀取清單失敗</p>'; }
     }
 
-    function renderTable(dataItems, allData) {
+    function renderTable(dataItems, headers) {
         const listDiv = document.getElementById('list-result');
         let tableHtml = `<table class="data-table" id="main-table"><thead><tr>
-            <th onclick="sortTable(17)">${getHeaderName(allData, 17)}</th>
-            <th onclick="sortTable(18)">${getHeaderName(allData, 18)}</th>
-            <th onclick="sortTable(19)">${getHeaderName(allData, 19)}</th>
-            <th onclick="sortTable(20)">${getHeaderName(allData, 20)}</th>
-            <th onclick="sortTable(21)">${getHeaderName(allData, 21)}</th>
+            <th onclick="sortTable(17)">${headers[17] || '欄位 R'}</th>
+            <th onclick="sortTable(18)">${headers[18] || '欄位 S'}</th>
+            <th onclick="sortTable(19)">${headers[19] || '欄位 T'}</th>
+            <th onclick="sortTable(20)">${headers[20] || '欄位 U'}</th>
+            <th onclick="sortTable(21)">${headers[21] || '欄位 V'}</th>
         </tr></thead><tbody>
         ${dataItems.map(row => `<tr>
             <td style="font-weight:600">${row[17] || '--'}</td>
@@ -344,7 +333,7 @@
             if (!isNaN(numA) && !isNaN(numB)) return (numA - numB) * dir;
             return valA.toString().localeCompare(valB.toString(), 'zh-Hant') * dir;
         });
-        fetchData().then(data => renderTable(listData, data));
+        fetchData().then(data => renderTable(listData, data[0]));
     }
 
     function parseCSV(text) {
