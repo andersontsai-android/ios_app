@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>?臬?渡? ?亥岷蝟餌絞</title>
+    <title>是否破線 查詢系統</title>
     <style>
         :root {
             --primary-color: #1e272e;
@@ -38,7 +38,7 @@
             position: relative;
         }
 
-        /* ?喃?閫??詨 */
+        /* 右上角計數器 */
         .filter-count {
             position: absolute;
             top: 15px;
@@ -188,24 +188,24 @@
 <div class="container">
     <div id="filter-count" class="filter-count" style="display: none;">0</div>
 
-    <h1>?臬?渡? ?亥岷蝟餌絞</h1>
+    <h1>是否破線 查詢系統</h1>
 
     <div class="tabs">
-        <div class="tab active" onclick="switchTab('search-tab')">?亥岷蝟餌絞</div>
-        <div class="tab" onclick="switchTab('list-tab')">?渡??</div>
+        <div class="tab active" onclick="switchTab('search-tab')">查詢系統</div>
+        <div class="tab" onclick="switchTab('list-tab')">破線名單</div>
     </div>
 
     <div id="search-tab" class="tab-content active">
         <div class="search-box">
-            <input type="number" id="stockCode" placeholder="頛詨隞?Ⅳ (靘?: 1303)" inputmode="numeric" autofocus>
-            <button onclick="searchStock()">?亥岷</button>
+            <input type="number" id="stockCode" placeholder="輸入代碼 (例如: 1303)" inputmode="numeric" autofocus>
+            <button onclick="searchStock()">查詢</button>
         </div>
         <div id="result"></div>
     </div>
 
     <div id="list-tab" class="tab-content">
         <div id="list-result">
-            <p class="loading">甇?頛皜...</p>
+            <p class="loading">正在載入清單...</p>
         </div>
     </div>
 </div>
@@ -246,7 +246,7 @@
         const resultDiv = document.getElementById('result');
         if (!inputCode) return;
 
-        resultDiv.innerHTML = '<p class="loading">?亥岷銝?..</p>';
+        resultDiv.innerHTML = '<p class="loading">查詢中...</p>';
 
         try {
             const data = await fetchData();
@@ -259,24 +259,24 @@
                 let statusValue = stock[3] || '--';
 
                 if (advancedStock) {
-                    statusValue = `<span style="color: var(--error-color);">???, ???${advancedStock[16] || '--'}</span>`;
+                    statusValue = `<span style="color: var(--error-color);">遠離均線, 成本為 ${advancedStock[16] || '--'}</span>`;
                 }
 
                 resultDiv.innerHTML = `
                     <div class="info-card">
-                        <div class="info-item"><span class="info-label">?∠巨?迂</span><span class="info-value">${stock[0]}</span></div>
-                        <div class="info-item"><span class="info-label">隞?Ⅳ</span><span class="info-value">${stock[1]}</span></div>
-                        <div class="info-item"><span class="info-label">?曉</span><span class="info-value">${stock[2]}</span></div>
-                        <div class="info-item"><span class="info-label">???????/span><span class="info-value">${statusValue}</span></div>
-                        <div class="info-item"><span class="info-label">??</span><span class="info-value">${stock[4]}</span></div>
-                        <div class="info-item"><span class="info-label">?</span><span class="info-value">${stock[5]}</span></div>
+                        <div class="info-item"><span class="info-label">股票名稱</span><span class="info-value">${stock[0]}</span></div>
+                        <div class="info-item"><span class="info-label">代碼</span><span class="info-value">${stock[1]}</span></div>
+                        <div class="info-item"><span class="info-label">現價</span><span class="info-value">${stock[2]}</span></div>
+                        <div class="info-item"><span class="info-label">回檔均線狀態</span><span class="info-value">${statusValue}</span></div>
+                        <div class="info-item"><span class="info-label">損益</span><span class="info-value">${stock[4]}</span></div>
+                        <div class="info-item"><span class="info-label">成本</span><span class="info-value">${stock[5]}</span></div>
                     </div>
                 `;
             } else {
-                resultDiv.innerHTML = '<p class="not-found" style="color:var(--error-color)">閰脖誨蝣潔??冽??桐葉</p>';
+                resultDiv.innerHTML = '<p class="not-found" style="color:var(--error-color)">該代碼不在清單中</p>';
             }
         } catch (e) {
-            resultDiv.innerHTML = '<p class="not-found">???憭望?</p>';
+            resultDiv.innerHTML = '<p class="not-found">連線失敗</p>';
         }
     }
 
@@ -292,13 +292,13 @@
             countDiv.style.display = 'block';
 
             if (listItems.length === 0) {
-                listDiv.innerHTML = '<p class="not-found">?桀??∠蝺蟡刻???/p>';
+                listDiv.innerHTML = '<p class="not-found">目前無破線股票資料</p>';
                 return;
             }
 
             let tableHtml = `
                 <table class="data-table">
-                    <thead><tr><th>?渡??∠巨 (P)</th><th>?/?暹? (Q)</th></tr></thead>
+                    <thead><tr><th>破線股票 (P)</th><th>成本/現況 (Q)</th></tr></thead>
                     <tbody>
                         ${listItems.map(row => `
                             <tr>
@@ -311,7 +311,7 @@
             `;
             listDiv.innerHTML = tableHtml;
         } catch (e) {
-            listDiv.innerHTML = '<p class="not-found">霈???桀仃??/p>';
+            listDiv.innerHTML = '<p class="not-found">讀取清單失敗</p>';
         }
     }
 
