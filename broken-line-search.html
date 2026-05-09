@@ -33,7 +33,7 @@
             border-radius: 20px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.1);
             width: 100%;
-            max-width: 900px; /* 再稍微加寬以容納長標題 */
+            max-width: 950px;
             text-align: center;
             position: relative;
         }
@@ -135,15 +135,16 @@
         }
 
         .info-item {
-            margin: 12px 0;
+            margin: 10px 0;
             display: flex;
             justify-content: space-between;
-            padding-bottom: 8px;
+            padding-bottom: 6px;
             border-bottom: 1px dashed #f0f0f0;
         }
 
         .info-label {
             color: #7f8c8d;
+            font-weight: 500;
         }
 
         .info-value {
@@ -213,6 +214,7 @@
         <div class="tab" onclick="switchTab('list-tab')">遠離均線名單</div>
     </div>
 
+    <!-- Tab 1: Search System -->
     <div id="search-tab" class="tab-content active">
         <div class="search-box">
             <input type="number" id="stockCode" placeholder="輸入代碼 (例如: 1303)" inputmode="numeric" autofocus>
@@ -221,6 +223,7 @@
         <div id="result"></div>
     </div>
 
+    <!-- Tab 2: Full List -->
     <div id="list-tab" class="tab-content">
         <div id="list-result" class="data-table-container">
             <p class="loading">正在載入清單...</p>
@@ -277,19 +280,20 @@
                 const advancedStock = data.find(row => row[15] === fullStockName);
 
                 let statusValue = stock[3] || '--';
-
                 if (advancedStock) {
                     statusValue = `<span style="color: var(--error-color);">遠離均線, 成本為 ${advancedStock[16] || '--'}</span>`;
                 }
 
                 resultDiv.innerHTML = `
                     <div class="info-card">
-                        <div class="info-item"><span class="info-label">股票名稱</span><span class="info-value">${stock[0]}</span></div>
-                        <div class="info-item"><span class="info-label">代碼</span><span class="info-value">${stock[1]}</span></div>
-                        <div class="info-item"><span class="info-label">現價</span><span class="info-value">${stock[2]}</span></div>
-                        <div class="info-item"><span class="info-label">回檔均線狀態</span><span class="info-value">${statusValue}</span></div>
-                        <div class="info-item"><span class="info-label">損益</span><span class="info-value">${stock[4]}</span></div>
-                        <div class="info-item"><span class="info-label">成本</span><span class="info-value">${stock[5]}</span></div>
+                        <div class="info-item"><span class="info-label">股票名稱 (A)</span><span class="info-value">${stock[0]}</span></div>
+                        <div class="info-item"><span class="info-label">代碼 (B)</span><span class="info-value">${stock[1]}</span></div>
+                        <div class="info-item"><span class="info-label">現價 (C)</span><span class="info-value">${stock[2]}</span></div>
+                        <div class="info-item"><span class="info-label">回檔均線狀態 (D)</span><span class="info-value">${statusValue}</span></div>
+                        <div class="info-item"><span class="info-label">損益 (E)</span><span class="info-value">${stock[4]}</span></div>
+                        <div class="info-item"><span class="info-label">成本 (F)</span><span class="info-value">${stock[5]}</span></div>
+                        <div class="info-item"><span class="info-label">報酬率 (G)</span><span class="info-value">${stock[6] || '--'}</span></div>
+                        <div class="info-item"><span class="info-label">標記 (H)</span><span class="info-value">${stock[7] || '--'}</span></div>
                     </div>
                 `;
             } else {
@@ -306,7 +310,8 @@
         
         try {
             const data = await fetchData();
-            listData = data.slice(1).filter(row => row[16]);
+            // 讀取 R~V (index 17, 18, 19, 20, 21)，以 R 欄作為名單判斷基準
+            listData = data.slice(1).filter(row => row[17]);
 
             countDiv.innerText = listData.length;
             countDiv.style.display = 'block';
@@ -328,21 +333,21 @@
             <table class="data-table" id="main-table">
                 <thead>
                     <tr>
-                        <th onclick="sortTable(16)">股票名稱</th>
-                        <th onclick="sortTable(17)">成本</th>
-                        <th onclick="sortTable(18)">均價</th>
-                        <th onclick="sortTable(19)">減碼賣出股數</th>
-                        <th onclick="sortTable(20)">減碼到最小單位賣出股數</th>
+                        <th onclick="sortTable(17)">股票名稱 (R)</th>
+                        <th onclick="sortTable(18)">成本 (S)</th>
+                        <th onclick="sortTable(19)">均價 (T)</th>
+                        <th onclick="sortTable(20)">減碼賣出股數 (U)</th>
+                        <th onclick="sortTable(21)">最小賣出股數 (V)</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${dataItems.map(row => `
                         <tr>
-                            <td style="font-weight:600">${row[16] || '--'}</td>
-                            <td style="color:var(--error-color)">${row[17] || '--'}</td>
-                            <td>${row[18] || '--'}</td>
+                            <td style="font-weight:600">${row[17] || '--'}</td>
+                            <td style="color:var(--error-color)">${row[18] || '--'}</td>
                             <td>${row[19] || '--'}</td>
-                            <td style="font-size:0.8rem">${row[20] || '--'}</td>
+                            <td>${row[20] || '--'}</td>
+                            <td style="font-size:0.8rem">${row[21] || '--'}</td>
                         </tr>
                     `).join('')}
                 </tbody>
@@ -358,8 +363,8 @@
         listData.sort((a, b) => {
             let valA = a[index] || '';
             let valB = b[index] || '';
-            let numA = parseFloat(valA.replace(/,/g, ''));
-            let numB = parseFloat(valB.replace(/,/g, ''));
+            let numA = parseFloat(valA.toString().replace(/,/g, ''));
+            let numB = parseFloat(valB.toString().replace(/,/g, ''));
 
             if (!isNaN(numA) && !isNaN(numB)) {
                 return (numA - numB) * dir;
