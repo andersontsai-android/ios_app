@@ -192,7 +192,7 @@
 
     <div class="tabs">
         <div class="tab active" onclick="switchTab('search-tab')">查詢系統</div>
-        <div class="tab" onclick="switchTab('list-tab')">破線名單</div>
+        <div class="tab" onclick="switchTab('list-tab')">遠離均線名單</div>
     </div>
 
     <div id="search-tab" class="tab-content active">
@@ -287,14 +287,14 @@
         try {
             const data = await fetchData();
             // 篩選 P 或 Q 欄有值的項目 (index 15, 16)
-            const listItems = data.slice(1).filter(row => row[15] || row[16]);
+            const listItems = data.slice(1).filter(row => row[16] || row[17]);
 
             // 更新計數器
             countDiv.innerText = listItems.length;
             countDiv.style.display = 'block';
 
             if (listItems.length === 0) {
-                listDiv.innerHTML = '<p class="not-found">目前無破線股票資料</p>';
+                listDiv.innerHTML = '<p class="not-found">目前無名單資料</p>';
                 return;
             }
 
