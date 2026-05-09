@@ -268,19 +268,11 @@
             const stock = data.find((row, idx) => idx > 0 && row[1] && row[1].toString().trim() === inputCode);
 
             if (stock) {
-                const fullStockName = stock[0];
-                const advancedStock = data.find(row => row[15] === fullStockName);
-                
-                let statusValue = stock[3] || '--';
-                if (advancedStock) {
-                    statusValue = `<span style="color: var(--error-color);">遠離均線, 成本為 ${advancedStock[16] || '--'}</span>`;
-                }
-
-                // 100% User-specified Hardcoded Labels (A-H)
+                // Hardcoded labels for Search (A-H)
                 const labels = ["股票名稱", "代碼", "買入均價", "現價", "多頭回檔到均線", "損益", "成本", "試算報酬率"];
                 let infoItemsHtml = '';
                 for (let i = 0; i <= 7; i++) {
-                    let val = (i === 3) ? statusValue : (stock[i] || '--');
+                    let val = stock[i] || '--';
                     infoItemsHtml += `<div class="info-item"><span class="info-label">${labels[i]}</span><span class="info-value">${val}</span></div>`;
                 }
                 resultDiv.innerHTML = `<div class="info-card">${infoItemsHtml}</div>`;
@@ -301,20 +293,22 @@
             countDiv.innerText = listData.length;
             countDiv.style.display = 'block';
             if (listData.length === 0) { listDiv.innerHTML = '<p class="not-found">目前無名單資料</p>'; return; }
-            renderTable(listData);
+            renderTable(listData, data[0][17]);
         } catch (e) { listDiv.innerHTML = '<p class="not-found">讀取清單失敗</p>'; }
     }
 
-    function renderTable(dataItems) {
+    function renderTable(dataItems, dynamicHeaderR) {
         const listDiv = document.getElementById('list-result');
-        // 100% User-specified Hardcoded Labels (R-V)
-        const headers = ["遠離均線34檔", "成本", "買入均價", "減碼賣出股數", "減碼到最小單位賣出股數"];
+        // R is dynamic, others are hardcoded
+        const headerR = dynamicHeaderR || "遠離均線34檔";
+        const otherHeaders = ["成本", "買入均價", "減碼賣出股數", "減碼到最小單位賣出股數"];
+        
         let tableHtml = `<table class="data-table" id="main-table"><thead><tr>
-            <th onclick="sortTable(17)">${headers[0]}</th>
-            <th onclick="sortTable(18)">${headers[1]}</th>
-            <th onclick="sortTable(19)">${headers[2]}</th>
-            <th onclick="sortTable(20)">${headers[3]}</th>
-            <th onclick="sortTable(21)">${headers[4]}</th>
+            <th onclick="sortTable(17)">${headerR}</th>
+            <th onclick="sortTable(18)">${otherHeaders[0]}</th>
+            <th onclick="sortTable(19)">${otherHeaders[1]}</th>
+            <th onclick="sortTable(20)">${otherHeaders[2]}</th>
+            <th onclick="sortTable(21)">${otherHeaders[3]}</th>
         </tr></thead><tbody>
         ${dataItems.map(row => `<tr>
             <td style="font-weight:600">${row[17] || '--'}</td>
@@ -337,7 +331,7 @@
             if (!isNaN(numA) && !isNaN(numB)) return (numA - numB) * dir;
             return valA.toString().localeCompare(valB.toString(), 'zh-Hant') * dir;
         });
-        renderTable(listData);
+        fetchData().then(data => renderTable(listData, data[0][17]));
     }
 
     function parseCSV(text) {
