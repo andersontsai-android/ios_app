@@ -264,7 +264,7 @@
 
         try {
             const data = await fetchData();
-            // B 欄 (index 1)
+            // B 欄 (index 1) 精確比對
             const stock = data.find((row, idx) => idx > 0 && row[1] && row[1].toString().trim() === inputCode);
 
             if (stock) {
@@ -276,8 +276,8 @@
                     statusValue = `<span style="color: var(--error-color);">遠離均線, 成本為 ${advancedStock[16] || '--'}</span>`;
                 }
 
-                // Hardcoded labels for Search (A-H)
-                const labels = ["股票名稱", "代碼", "買入均價", "現價", "損益", "成本", "報酬率", "標記"];
+                // 100% User-specified Hardcoded Labels (A-H)
+                const labels = ["股票名稱", "代碼", "買入均價", "現價", "多頭回檔到均線", "損益", "成本", "試算報酬率"];
                 let infoItemsHtml = '';
                 for (let i = 0; i <= 7; i++) {
                     let val = (i === 3) ? statusValue : (stock[i] || '--');
