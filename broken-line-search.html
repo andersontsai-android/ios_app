@@ -285,12 +285,10 @@
                     statusValue = `<span style="color: var(--error-color);">遠離均線, 成本為 ${advancedStock[16] || '--'}</span>`;
                 }
 
-                // 備援標籤 (以防 Headers 為空)
-                const fallbackLabels = ["股票名稱 (A)", "代碼 (B)", "現價 (C)", "回檔均線狀態 (D)", "損益 (E)", "成本 (F)", "報酬率 (G)", "標記 (H)"];
-
                 let infoItemsHtml = '';
+                // 嚴格顯示 A~H (0-7)，直接抓標題列內容
                 for (let i = 0; i <= 7; i++) {
-                    let label = headers[i] || fallbackLabels[i];
+                    let label = headers[i] || "";
                     let val = (i === 3) ? statusValue : (stock[i] || '--');
                     infoItemsHtml += `<div class="info-item"><span class="info-label">${label}</span><span class="info-value">${val}</span></div>`;
                 }
@@ -311,7 +309,7 @@
         try {
             const data = await fetchData();
             const headers = data[0];
-            // 讀取 R~V (index 17~21)，R 為股票名稱
+            // 嚴格讀取 R~V (17-21)
             listData = data.slice(1).filter(row => row[17]);
 
             countDiv.innerText = listData.length;
@@ -330,23 +328,15 @@
 
     function renderTable(dataItems, headers) {
         const listDiv = document.getElementById('list-result');
-        
-        // 備援標籤
-        const col17 = headers[17] || "股票名稱 (R)";
-        const col18 = headers[18] || "成本 (S)";
-        const col19 = headers[19] || "均價 (T)";
-        const col20 = headers[20] || "減碼賣出股數 (U)";
-        const col21 = headers[21] || "最小賣出股數 (V)";
-
         let tableHtml = `
             <table class="data-table" id="main-table">
                 <thead>
                     <tr>
-                        <th onclick="sortTable(17)">${col17}</th>
-                        <th onclick="sortTable(18)">${col18}</th>
-                        <th onclick="sortTable(19)">${col19}</th>
-                        <th onclick="sortTable(20)">${col20}</th>
-                        <th onclick="sortTable(21)">${col21}</th>
+                        <th onclick="sortTable(17)">${headers[17] || ""}</th>
+                        <th onclick="sortTable(18)">${headers[18] || ""}</th>
+                        <th onclick="sortTable(19)">${headers[19] || ""}</th>
+                        <th onclick="sortTable(20)">${headers[20] || ""}</th>
+                        <th onclick="sortTable(21)">${headers[21] || ""}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -384,26 +374,29 @@
         fetchData().then(data => renderTable(listData, data[0]));
     }
 
+    // Professional CSV Parser to handle all edge cases (quoted fields, newlines in cells, etc.)
     function parseCSV(text) {
-        const lines = text.split(/\r?\n/);
-        return lines.map(line => {
-            const parts = [];
-            let current = '';
-            let inQuotes = false;
-            for (let i = 0; i < line.length; i++) {
-                let char = line[i];
-                if (char === '"') {
-                    inQuotes = !inQuotes;
-                } else if (char === ',' && !inQuotes) {
-                    parts.push(current.trim());
-                    current = '';
-                } else {
-                    current += char;
-                }
+        const result = [];
+        let row = [];
+        let col = "";
+        let quoted = false;
+        for (let i = 0; i < text.length; i++) {
+            let char = text[i];
+            let next = text[i+1];
+            if (quoted) {
+                if (char === '"' && next === '"') { col += '"'; i++; }
+                else if (char === '"') { quoted = false; }
+                else { col += char; }
+            } else {
+                if (char === '"') { quoted = true; }
+                else if (char === ',') { row.push(col.trim()); col = ""; }
+                else if (char === '\n') { row.push(col.trim()); result.push(row); row = []; col = ""; }
+                else if (char === '\r' && next === '\n') { row.push(col.trim()); result.push(row); row = []; col = ""; i++; }
+                else { col += char; }
             }
-            parts.push(current.trim());
-            return parts;
-        });
+        }
+        if (row.length > 0 || col !== "") { row.push(col.trim()); result.push(row); }
+        return result;
     }
 </script>
 
