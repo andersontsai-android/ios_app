@@ -274,29 +274,28 @@
         try {
             const data = await fetchData();
             const headers = data[0]; 
+            // 比對 B 欄 (index 1) 是否完全符合輸入代碼
             const stock = data.find(row => row[1] && row[1].toString().trim() === inputCode);
 
             if (stock) {
                 const fullStockName = stock[0];
                 const advancedStock = data.find(row => row[15] === fullStockName);
 
+                // D 欄 (index 3) 特殊邏輯：若 P 欄 (index 15) 匹配，則變色變字
                 let statusValue = stock[3] || '--';
                 if (advancedStock) {
                     statusValue = `<span style="color: var(--error-color);">遠離均線, 成本為 ${advancedStock[16] || '--'}</span>`;
                 }
 
                 let infoItemsHtml = '';
+                // 顯示 A~H 欄 (index 0~7)，名稱直接抓 headers[i]
                 for (let i = 0; i <= 7; i++) {
                     let label = headers[i] || `欄位 ${String.fromCharCode(65 + i)}`;
-                    let value = (i === 3) ? statusValue : (stock[i] || '--');
-                    infoItemsHtml += `<div class="info-item"><span class="info-label">${label}</span><span class="info-value">${value}</span></div>`;
+                    let val = (i === 3) ? statusValue : (stock[i] || '--');
+                    infoItemsHtml += `<div class="info-item"><span class="info-label">${label}</span><span class="info-value">${val}</span></div>`;
                 }
 
-                resultDiv.innerHTML = `
-                    <div class="info-card">
-                        ${infoItemsHtml}
-                    </div>
-                `;
+                resultDiv.innerHTML = `<div class="info-card">${infoItemsHtml}</div>`;
             } else {
                 resultDiv.innerHTML = '<p class="not-found" style="color:var(--error-color)">該代碼不在清單中</p>';
             }
@@ -374,6 +373,7 @@
             return valA.toString().localeCompare(valB.toString(), 'zh-Hant') * dir;
         });
 
+        // 重新渲染時需再抓一次 headers
         fetchData().then(data => renderTable(listData, data[0]));
     }
 
@@ -383,10 +383,16 @@
             const parts = [];
             let current = '';
             let inQuotes = false;
-            for (let char of line) {
-                if (char === '"') inQuotes = !inQuotes;
-                else if (char === ',' && !inQuotes) { parts.push(current.trim()); current = ''; }
-                else current += char;
+            for (let i = 0; i < line.length; i++) {
+                let char = line[i];
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    parts.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
             }
             parts.push(current.trim());
             return parts;
