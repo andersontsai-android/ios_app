@@ -232,7 +232,6 @@
 </div>
 
 <script>
-    // 嚴格鎖定「是否破線」分頁
     const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1Bl9SRtxSp2StQH99wPLn8TyfvSYRlyHu6-tIS2F_UHg/gviz/tq?tqx=out:csv&sheet=%E6%98%AF%E5%90%A6%E7%A0%B4%E7%B7%9A';
     let cachedData = null;
     let listData = [];
@@ -257,21 +256,6 @@
         return cachedData;
     }
 
-    // 真正的標籤：優先抓取，若為空則顯示用戶確認過的名稱
-    function getHeaderName(data, idx) {
-        const verifiedLabels = ["股票名稱", "代碼", "買入均價", "現價", "損益", "成本", "報酬率", "標記"];
-        const listLabels = {
-            17: "股票名稱", 18: "成本", 19: "均價", 20: "減碼賣出股數", 21: "最小賣出股數"
-        };
-
-        let found = "";
-        for (let r = 0; r < 3; r++) { if (data[r] && data[r][idx]) { found = data[r][idx]; break; } }
-        
-        if (found) return found;
-        if (idx <= 7) return verifiedLabels[idx];
-        return listLabels[idx] || `欄位 ${idx}`;
-    }
-
     async function searchStock() {
         const inputCode = document.getElementById('stockCode').value.trim();
         const resultDiv = document.getElementById('result');
@@ -280,22 +264,24 @@
 
         try {
             const data = await fetchData();
-            // 比對 B 欄 (index 1)
+            // B 欄 (index 1)
             const stock = data.find((row, idx) => idx > 0 && row[1] && row[1].toString().trim() === inputCode);
 
             if (stock) {
                 const fullStockName = stock[0];
                 const advancedStock = data.find(row => row[15] === fullStockName);
+                
                 let statusValue = stock[3] || '--';
                 if (advancedStock) {
                     statusValue = `<span style="color: var(--error-color);">遠離均線, 成本為 ${advancedStock[16] || '--'}</span>`;
                 }
 
+                // Hardcoded labels for Search (A-H)
+                const labels = ["股票名稱", "代碼", "買入均價", "現價", "損益", "成本", "報酬率", "標記"];
                 let infoItemsHtml = '';
                 for (let i = 0; i <= 7; i++) {
-                    let label = getHeaderName(data, i);
                     let val = (i === 3) ? statusValue : (stock[i] || '--');
-                    infoItemsHtml += `<div class="info-item"><span class="info-label">${label}</span><span class="info-value">${val}</span></div>`;
+                    infoItemsHtml += `<div class="info-item"><span class="info-label">${labels[i]}</span><span class="info-value">${val}</span></div>`;
                 }
                 resultDiv.innerHTML = `<div class="info-card">${infoItemsHtml}</div>`;
             } else {
@@ -309,24 +295,25 @@
         const countDiv = document.getElementById('filter-count');
         try {
             const data = await fetchData();
-            // 讀取 R~V (17-21)，排除標題
-            listData = data.slice(1).filter(row => row[17] && row[17] !== getHeaderName(data, 17));
+            // 名單 R~V (index 17-21)
+            listData = data.slice(1).filter(row => row[17] && row[17].toString().trim() !== "");
 
             countDiv.innerText = listData.length;
             countDiv.style.display = 'block';
             if (listData.length === 0) { listDiv.innerHTML = '<p class="not-found">目前無名單資料</p>'; return; }
-            renderTable(listData, data);
+            renderTable(listData);
         } catch (e) { listDiv.innerHTML = '<p class="not-found">讀取清單失敗</p>'; }
     }
 
-    function renderTable(dataItems, allData) {
+    function renderTable(dataItems) {
         const listDiv = document.getElementById('list-result');
+        // Hardcoded labels for List (R-V)
         let tableHtml = `<table class="data-table" id="main-table"><thead><tr>
-            <th onclick="sortTable(17)">${getHeaderName(allData, 17)}</th>
-            <th onclick="sortTable(18)">${getHeaderName(allData, 18)}</th>
-            <th onclick="sortTable(19)">${getHeaderName(allData, 19)}</th>
-            <th onclick="sortTable(20)">${getHeaderName(allData, 20)}</th>
-            <th onclick="sortTable(21)">${getHeaderName(allData, 21)}</th>
+            <th onclick="sortTable(17)">股票名稱</th>
+            <th onclick="sortTable(18)">成本</th>
+            <th onclick="sortTable(19)">均價</th>
+            <th onclick="sortTable(20)">減碼賣出股數</th>
+            <th onclick="sortTable(21)">最小賣出股數</th>
         </tr></thead><tbody>
         ${dataItems.map(row => `<tr>
             <td style="font-weight:600">${row[17] || '--'}</td>
@@ -349,7 +336,7 @@
             if (!isNaN(numA) && !isNaN(numB)) return (numA - numB) * dir;
             return valA.toString().localeCompare(valB.toString(), 'zh-Hant') * dir;
         });
-        fetchData().then(data => renderTable(listData, data));
+        renderTable(listData);
     }
 
     function parseCSV(text) {
