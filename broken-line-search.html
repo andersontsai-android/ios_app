@@ -264,6 +264,17 @@
         return cachedData;
     }
 
+    // 智慧標題抓取：如果該列為空，自動往下一列找
+    function getHeaderName(data, columnIndex) {
+        // 從第一列開始找，直到找到非空值或到達資料底端
+        for (let r = 0; r < Math.min(data.length, 5); r++) {
+            if (data[r][columnIndex] && data[r][columnIndex].trim() !== "") {
+                return data[r][columnIndex];
+            }
+        }
+        return `欄位 ${String.fromCharCode(65 + columnIndex)}`;
+    }
+
     async function searchStock() {
         const inputCode = document.getElementById('stockCode').value.trim();
         const resultDiv = document.getElementById('result');
@@ -273,7 +284,6 @@
 
         try {
             const data = await fetchData();
-            const headers = data[0]; 
             const stock = data.find(row => row[1] && row[1].toString().trim() === inputCode);
 
             if (stock) {
@@ -286,9 +296,9 @@
                 }
 
                 let infoItemsHtml = '';
-                // 嚴格顯示 A~H (0-7)，直接抓標題列內容
+                // 顯示 A~H (0~7)，使用智慧標題
                 for (let i = 0; i <= 7; i++) {
-                    let label = headers[i] || "";
+                    let label = getHeaderName(data, i);
                     let val = (i === 3) ? statusValue : (stock[i] || '--');
                     infoItemsHtml += `<div class="info-item"><span class="info-label">${label}</span><span class="info-value">${val}</span></div>`;
                 }
@@ -308,9 +318,8 @@
         
         try {
             const data = await fetchData();
-            const headers = data[0];
-            // 嚴格讀取 R~V (17-21)
-            listData = data.slice(1).filter(row => row[17]);
+            // 名單從 index 1 開始（排除標題列），基準欄為 R (17)
+            listData = data.slice(1).filter(row => row[17] && row[17] !== getHeaderName(data, 17));
 
             countDiv.innerText = listData.length;
             countDiv.style.display = 'block';
@@ -320,23 +329,23 @@
                 return;
             }
 
-            renderTable(listData, headers);
+            renderTable(listData, data);
         } catch (e) {
             listDiv.innerHTML = '<p class="not-found">讀取清單失敗</p>';
         }
     }
 
-    function renderTable(dataItems, headers) {
+    function renderTable(dataItems, allData) {
         const listDiv = document.getElementById('list-result');
         let tableHtml = `
             <table class="data-table" id="main-table">
                 <thead>
                     <tr>
-                        <th onclick="sortTable(17)">${headers[17] || ""}</th>
-                        <th onclick="sortTable(18)">${headers[18] || ""}</th>
-                        <th onclick="sortTable(19)">${headers[19] || ""}</th>
-                        <th onclick="sortTable(20)">${headers[20] || ""}</th>
-                        <th onclick="sortTable(21)">${headers[21] || ""}</th>
+                        <th onclick="sortTable(17)">${getHeaderName(allData, 17)}</th>
+                        <th onclick="sortTable(18)">${getHeaderName(allData, 18)}</th>
+                        <th onclick="sortTable(19)">${getHeaderName(allData, 19)}</th>
+                        <th onclick="sortTable(20)">${getHeaderName(allData, 20)}</th>
+                        <th onclick="sortTable(21)">${getHeaderName(allData, 21)}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -371,10 +380,9 @@
             return valA.toString().localeCompare(valB.toString(), 'zh-Hant') * dir;
         });
 
-        fetchData().then(data => renderTable(listData, data[0]));
+        fetchData().then(data => renderTable(listData, data));
     }
 
-    // Professional CSV Parser to handle all edge cases (quoted fields, newlines in cells, etc.)
     function parseCSV(text) {
         const result = [];
         let row = [];
