@@ -286,8 +286,10 @@
         
         try {
             const data = await fetchData();
+            // 篩選 P 或 Q 欄有值的項目 (index 15, 16)
             const listItems = data.slice(1).filter(row => row[15] || row[16]);
 
+            // 更新計數器
             countDiv.innerText = listItems.length;
             countDiv.style.display = 'block';
 
@@ -298,12 +300,12 @@
 
             let tableHtml = `
                 <table class="data-table">
-                    <thead><tr><th>破線股票 (P)</th><th>成本/現況 (Q)</th></tr></thead>
+                    <thead><tr><th>名稱/內容 (Q)</th><th>數值/狀態 (R)</th></tr></thead>
                     <tbody>
                         ${listItems.map(row => `
                             <tr>
-                                <td style="font-weight:600">${row[15] || '--'}</td>
-                                <td style="color:var(--error-color)">${row[16] || '--'}</td>
+                                <td style="font-weight:600">${row[16] || '--'}</td>
+                                <td style="color:var(--error-color)">${row[17] || '--'}</td>
                             </tr>
                         `).join('')}
                     </tbody>
