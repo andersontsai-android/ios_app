@@ -273,6 +273,7 @@
 
         try {
             const data = await fetchData();
+            const headers = data[0]; // 取得第一列作為動態欄位名稱
             const stock = data.find(row => row[0] && row[0].toString().includes(inputCode));
 
             if (stock) {
@@ -284,16 +285,17 @@
                     statusValue = `<span style="color: var(--error-color);">遠離均線, 成本為 ${advancedStock[16] || '--'}</span>`;
                 }
 
+                // 動態生成 A~H 欄位 (index 0~7)
+                let infoItemsHtml = '';
+                for (let i = 0; i <= 7; i++) {
+                    let label = headers[i] || `欄位 ${String.fromCharCode(65 + i)}`;
+                    let value = (i === 3) ? statusValue : (stock[i] || '--');
+                    infoItemsHtml += `<div class="info-item"><span class="info-label">${label}</span><span class="info-value">${value}</span></div>`;
+                }
+
                 resultDiv.innerHTML = `
                     <div class="info-card">
-                        <div class="info-item"><span class="info-label">股票名稱 (A)</span><span class="info-value">${stock[0]}</span></div>
-                        <div class="info-item"><span class="info-label">代碼 (B)</span><span class="info-value">${stock[1]}</span></div>
-                        <div class="info-item"><span class="info-label">現價 (C)</span><span class="info-value">${stock[2]}</span></div>
-                        <div class="info-item"><span class="info-label">回檔均線狀態 (D)</span><span class="info-value">${statusValue}</span></div>
-                        <div class="info-item"><span class="info-label">損益 (E)</span><span class="info-value">${stock[4]}</span></div>
-                        <div class="info-item"><span class="info-label">成本 (F)</span><span class="info-value">${stock[5]}</span></div>
-                        <div class="info-item"><span class="info-label">報酬率 (G)</span><span class="info-value">${stock[6] || '--'}</span></div>
-                        <div class="info-item"><span class="info-label">標記 (H)</span><span class="info-value">${stock[7] || '--'}</span></div>
+                        ${infoItemsHtml}
                     </div>
                 `;
             } else {
@@ -310,7 +312,6 @@
         
         try {
             const data = await fetchData();
-            // 讀取 R~V (index 17, 18, 19, 20, 21)，以 R 欄作為名單判斷基準
             listData = data.slice(1).filter(row => row[17]);
 
             countDiv.innerText = listData.length;
