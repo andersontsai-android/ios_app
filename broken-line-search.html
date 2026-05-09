@@ -274,23 +274,23 @@
         try {
             const data = await fetchData();
             const headers = data[0]; 
-            // 比對 B 欄 (index 1) 是否完全符合輸入代碼
             const stock = data.find(row => row[1] && row[1].toString().trim() === inputCode);
 
             if (stock) {
                 const fullStockName = stock[0];
                 const advancedStock = data.find(row => row[15] === fullStockName);
 
-                // D 欄 (index 3) 特殊邏輯：若 P 欄 (index 15) 匹配，則變色變字
                 let statusValue = stock[3] || '--';
                 if (advancedStock) {
                     statusValue = `<span style="color: var(--error-color);">遠離均線, 成本為 ${advancedStock[16] || '--'}</span>`;
                 }
 
+                // 備援標籤 (以防 Headers 為空)
+                const fallbackLabels = ["股票名稱 (A)", "代碼 (B)", "現價 (C)", "回檔均線狀態 (D)", "損益 (E)", "成本 (F)", "報酬率 (G)", "標記 (H)"];
+
                 let infoItemsHtml = '';
-                // 顯示 A~H 欄 (index 0~7)，名稱直接抓 headers[i]
                 for (let i = 0; i <= 7; i++) {
-                    let label = headers[i] || `欄位 ${String.fromCharCode(65 + i)}`;
+                    let label = headers[i] || fallbackLabels[i];
                     let val = (i === 3) ? statusValue : (stock[i] || '--');
                     infoItemsHtml += `<div class="info-item"><span class="info-label">${label}</span><span class="info-value">${val}</span></div>`;
                 }
@@ -311,7 +311,7 @@
         try {
             const data = await fetchData();
             const headers = data[0];
-            // 讀取 R~V (index 17~21)，排除標題列且 R 欄有值
+            // 讀取 R~V (index 17~21)，R 為股票名稱
             listData = data.slice(1).filter(row => row[17]);
 
             countDiv.innerText = listData.length;
@@ -330,15 +330,23 @@
 
     function renderTable(dataItems, headers) {
         const listDiv = document.getElementById('list-result');
+        
+        // 備援標籤
+        const col17 = headers[17] || "股票名稱 (R)";
+        const col18 = headers[18] || "成本 (S)";
+        const col19 = headers[19] || "均價 (T)";
+        const col20 = headers[20] || "減碼賣出股數 (U)";
+        const col21 = headers[21] || "最小賣出股數 (V)";
+
         let tableHtml = `
             <table class="data-table" id="main-table">
                 <thead>
                     <tr>
-                        <th onclick="sortTable(17)">${headers[17] || '股票名稱'}</th>
-                        <th onclick="sortTable(18)">${headers[18] || '成本'}</th>
-                        <th onclick="sortTable(19)">${headers[19] || '均價'}</th>
-                        <th onclick="sortTable(20)">${headers[20] || '減碼賣出股數'}</th>
-                        <th onclick="sortTable(21)">${headers[21] || '最小賣出股數'}</th>
+                        <th onclick="sortTable(17)">${col17}</th>
+                        <th onclick="sortTable(18)">${col18}</th>
+                        <th onclick="sortTable(19)">${col19}</th>
+                        <th onclick="sortTable(20)">${col20}</th>
+                        <th onclick="sortTable(21)">${col21}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -373,7 +381,6 @@
             return valA.toString().localeCompare(valB.toString(), 'zh-Hant') * dir;
         });
 
-        // 重新渲染時需再抓一次 headers
         fetchData().then(data => renderTable(listData, data[0]));
     }
 
