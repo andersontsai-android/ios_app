@@ -33,12 +33,11 @@
             border-radius: 20px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.1);
             width: 100%;
-            max-width: 600px;
+            max-width: 800px; /* 增加寬度以容納更多欄位 */
             text-align: center;
             position: relative;
         }
 
-        /* 右上角計數器 */
         .filter-count {
             position: absolute;
             top: 15px;
@@ -152,22 +151,42 @@
             font-weight: 600;
         }
 
+        /* 表格樣式優化 */
+        .data-table-container {
+            overflow-x: auto; /* 手機端可捲動 */
+            margin-top: 10px;
+        }
+
         .data-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            font-size: 0.9rem;
         }
 
         .data-table th, .data-table td {
             text-align: left;
-            padding: 12px;
+            padding: 10px 8px;
             border-bottom: 1px solid #eee;
+            white-space: nowrap;
         }
 
         .data-table th {
             background-color: #f8f9fa;
-            color: #7f8c8d;
-            font-size: 0.9rem;
+            color: #2f3542;
+            cursor: pointer;
+            position: sticky;
+            top: 0;
+            user-select: none;
+        }
+
+        .data-table th:hover {
+            background-color: #e2e6ea;
+        }
+
+        .data-table th::after {
+            content: ' ↕';
+            font-size: 0.7rem;
+            color: #ccc;
         }
 
         .not-found, .loading {
@@ -195,6 +214,7 @@
         <div class="tab" onclick="switchTab('list-tab')">遠離均線名單</div>
     </div>
 
+    <!-- Tab 1: Search System -->
     <div id="search-tab" class="tab-content active">
         <div class="search-box">
             <input type="number" id="stockCode" placeholder="輸入代碼 (例如: 1303)" inputmode="numeric" autofocus>
@@ -203,8 +223,9 @@
         <div id="result"></div>
     </div>
 
+    <!-- Tab 2: Full List -->
     <div id="list-tab" class="tab-content">
-        <div id="list-result">
+        <div id="list-result" class="data-table-container">
             <p class="loading">正在載入清單...</p>
         </div>
     </div>
@@ -213,6 +234,8 @@
 <script>
     const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1Bl9SRtxSp2StQH99wPLn8TyfvSYRlyHu6-tIS2F_UHg/gviz/tq?tqx=out:csv&sheet=%E6%98%AF%E5%90%A6%E7%A0%B4%E7%B7%9A';
     let cachedData = null;
+    let listData = []; // 存放過濾後的名單資料供排序使用
+    let sortDirection = {}; // 紀錄各欄位排序方向
 
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -286,35 +309,72 @@
         
         try {
             const data = await fetchData();
-            // 篩選 P 或 Q 欄有值的項目 (index 15, 16)
-            const listItems = data.slice(1).filter(row => row[16] || row[17]);
+            // 篩選 Q 欄 (16) 有值的項目作為名單基準
+            listData = data.slice(1).filter(row => row[16]);
 
-            // 更新計數器
-            countDiv.innerText = listItems.length;
+            countDiv.innerText = listData.length;
             countDiv.style.display = 'block';
 
-            if (listItems.length === 0) {
+            if (listData.length === 0) {
                 listDiv.innerHTML = '<p class="not-found">目前無名單資料</p>';
                 return;
             }
 
-            let tableHtml = `
-                <table class="data-table">
-                    <thead><tr><th>名稱/內容 (Q)</th><th>數值/狀態 (R)</th></tr></thead>
-                    <tbody>
-                        ${listItems.map(row => `
-                            <tr>
-                                <td style="font-weight:600">${row[16] || '--'}</td>
-                                <td style="color:var(--error-color)">${row[17] || '--'}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-            listDiv.innerHTML = tableHtml;
+            renderTable(listData);
         } catch (e) {
             listDiv.innerHTML = '<p class="not-found">讀取清單失敗</p>';
         }
+    }
+
+    function renderTable(dataItems) {
+        const listDiv = document.getElementById('list-result');
+        let tableHtml = `
+            <table class="data-table" id="main-table">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable(16)">內容 (Q)</th>
+                        <th onclick="sortTable(17)">數值 (R)</th>
+                        <th onclick="sortTable(18)">狀態 (S)</th>
+                        <th onclick="sortTable(19)">詳情 (T)</th>
+                        <th onclick="sortTable(20)">備註 (U)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${dataItems.map(row => `
+                        <tr>
+                            <td style="font-weight:600">${row[16] || '--'}</td>
+                            <td style="color:var(--error-color)">${row[17] || '--'}</td>
+                            <td>${row[18] || '--'}</td>
+                            <td>${row[19] || '--'}</td>
+                            <td style="font-size:0.8rem">${row[20] || '--'}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+        listDiv.innerHTML = tableHtml;
+    }
+
+    // 排序功能
+    function sortTable(index) {
+        sortDirection[index] = !sortDirection[index]; // 切換方向
+        const dir = sortDirection[index] ? 1 : -1;
+
+        listData.sort((a, b) => {
+            let valA = a[index] || '';
+            let valB = b[index] || '';
+            
+            // 嘗試轉為數字比較
+            let numA = parseFloat(valA.replace(/,/g, ''));
+            let numB = parseFloat(valB.replace(/,/g, ''));
+
+            if (!isNaN(numA) && !isNaN(numB)) {
+                return (numA - numB) * dir;
+            }
+            return valA.toString().localeCompare(valB.toString(), 'zh-Hant') * dir;
+        });
+
+        renderTable(listData);
     }
 
     function parseCSV(text) {
