@@ -33,7 +33,7 @@
             border-radius: 20px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.1);
             width: 100%;
-            max-width: 800px; /* 增加寬度以容納更多欄位 */
+            max-width: 900px; /* 再稍微加寬以容納長標題 */
             text-align: center;
             position: relative;
         }
@@ -151,9 +151,8 @@
             font-weight: 600;
         }
 
-        /* 表格樣式優化 */
         .data-table-container {
-            overflow-x: auto; /* 手機端可捲動 */
+            overflow-x: auto;
             margin-top: 10px;
         }
 
@@ -214,7 +213,6 @@
         <div class="tab" onclick="switchTab('list-tab')">遠離均線名單</div>
     </div>
 
-    <!-- Tab 1: Search System -->
     <div id="search-tab" class="tab-content active">
         <div class="search-box">
             <input type="number" id="stockCode" placeholder="輸入代碼 (例如: 1303)" inputmode="numeric" autofocus>
@@ -223,7 +221,6 @@
         <div id="result"></div>
     </div>
 
-    <!-- Tab 2: Full List -->
     <div id="list-tab" class="tab-content">
         <div id="list-result" class="data-table-container">
             <p class="loading">正在載入清單...</p>
@@ -234,8 +231,8 @@
 <script>
     const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1Bl9SRtxSp2StQH99wPLn8TyfvSYRlyHu6-tIS2F_UHg/gviz/tq?tqx=out:csv&sheet=%E6%98%AF%E5%90%A6%E7%A0%B4%E7%B7%9A';
     let cachedData = null;
-    let listData = []; // 存放過濾後的名單資料供排序使用
-    let sortDirection = {}; // 紀錄各欄位排序方向
+    let listData = [];
+    let sortDirection = {};
 
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -309,7 +306,6 @@
         
         try {
             const data = await fetchData();
-            // 篩選 Q 欄 (16) 有值的項目作為名單基準
             listData = data.slice(1).filter(row => row[16]);
 
             countDiv.innerText = listData.length;
@@ -332,11 +328,11 @@
             <table class="data-table" id="main-table">
                 <thead>
                     <tr>
-                        <th onclick="sortTable(16)">內容 (Q)</th>
-                        <th onclick="sortTable(17)">數值 (R)</th>
-                        <th onclick="sortTable(18)">狀態 (S)</th>
-                        <th onclick="sortTable(19)">詳情 (T)</th>
-                        <th onclick="sortTable(20)">備註 (U)</th>
+                        <th onclick="sortTable(16)">股票名稱</th>
+                        <th onclick="sortTable(17)">成本</th>
+                        <th onclick="sortTable(18)">均價</th>
+                        <th onclick="sortTable(19)">減碼賣出股數</th>
+                        <th onclick="sortTable(20)">減碼到最小單位賣出股數</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -355,16 +351,13 @@
         listDiv.innerHTML = tableHtml;
     }
 
-    // 排序功能
     function sortTable(index) {
-        sortDirection[index] = !sortDirection[index]; // 切換方向
+        sortDirection[index] = !sortDirection[index];
         const dir = sortDirection[index] ? 1 : -1;
 
         listData.sort((a, b) => {
             let valA = a[index] || '';
             let valB = b[index] || '';
-            
-            // 嘗試轉為數字比較
             let numA = parseFloat(valA.replace(/,/g, ''));
             let numB = parseFloat(valB.replace(/,/g, ''));
 
