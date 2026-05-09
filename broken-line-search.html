@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>是否破線 查詢系統</title>
+    <title>?臬?渡? ?亥岷蝟餌絞</title>
     <style>
         :root {
             --primary-color: #1e272e;
@@ -35,6 +35,23 @@
             width: 100%;
             max-width: 600px;
             text-align: center;
+            position: relative; /* ?箔?霈??詨摰? */
+        }
+
+        /* ?喃?閫??詨璅?? */
+        .filter-count {
+            position: absolute;
+            top: 15px;
+            right: 25px;
+            font-size: 2.8rem; /* 憭批?擃?*/
+            font-weight: 800;
+            color: var(--accent-color);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 0 10px;
+            border-radius: 8px;
+            z-index: 100;
+            line-height: 1;
+            pointer-events: none; /* ?脫迫?格?暺? */
         }
 
         h1 {
@@ -44,7 +61,6 @@
             letter-spacing: 1px;
         }
 
-        /* Tabs Styling */
         .tabs {
             display: flex;
             margin-bottom: 2rem;
@@ -136,7 +152,6 @@
             font-weight: 600;
         }
 
-        /* List Styling for Tab 2 */
         .data-table {
             width: 100%;
             border-collapse: collapse;
@@ -171,18 +186,21 @@
 <body>
 
 <div class="container">
-    <h1>是否破線 查詢系統</h1>
-    
+    <!-- ?喃?閫??詨 -->
+    <div id="filter-count" class="filter-count" style="display: none;">0</div>
+
+    <h1>?臬?渡? ?亥岷蝟餌絞</h1>
+
     <div class="tabs">
-        <div class="tab active" onclick="switchTab('search-tab')">查詢系統</div>
-        <div class="tab" onclick="switchTab('list-tab')">遠離均線</div>
+        <div class="tab active" onclick="switchTab('search-tab')">?亥岷蝟餌絞</div>
+        <div class="tab" onclick="switchTab('list-tab')">?渡??</div>
     </div>
 
     <!-- Tab 1: Search System -->
     <div id="search-tab" class="tab-content active">
         <div class="search-box">
-            <input type="number" id="stockCode" placeholder="輸入代碼 (例如: 1303)" inputmode="numeric" autofocus>
-            <button onclick="searchStock()">查詢</button>
+            <input type="number" id="stockCode" placeholder="頛詨隞?Ⅳ (靘?: 1303)" inputmode="numeric" autofocus>
+            <button onclick="searchStock()">?亥岷</button>
         </div>
         <div id="result"></div>
     </div>
@@ -190,7 +208,7 @@
     <!-- Tab 2: Full List -->
     <div id="list-tab" class="tab-content">
         <div id="list-result">
-            <p class="loading">正在讀取清單...</p>
+            <p class="loading">甇?頛皜...</p>
         </div>
     </div>
 </div>
@@ -203,12 +221,16 @@
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        
+
         document.getElementById(tabId).classList.add('active');
         event.currentTarget.classList.add('active');
 
+        const countDiv = document.getElementById('filter-count');
         if (tabId === 'list-tab') {
             renderFullList();
+        } else {
+            // ????撠????梯?閮??
+            if (countDiv) countDiv.style.display = 'none';
         }
     }
 
@@ -229,7 +251,7 @@
         const resultDiv = document.getElementById('result');
         if (!inputCode) return;
 
-        resultDiv.innerHTML = '<p class="loading">查詢中...</p>';
+        resultDiv.innerHTML = '<p class="loading">?亥岷銝?..</p>';
 
         try {
             const data = await fetchData();
@@ -243,42 +265,48 @@
                 let costValue = stock[5] || '--';
 
                 if (advancedStock) {
-                    statusValue = `<span style="color: var(--error-color);">遠離均線, 成本為 ${advancedStock[16] || '--'}</span>`;
+                    statusValue = `<span style="color: var(--error-color);">?渡??, 撱箄降??${advancedStock[16] || '--'}</span>`;
                 }
 
                 resultDiv.innerHTML = `
                     <div class="info-card">
-                        <div class="info-item"><span class="info-label">股票名稱</span><span class="info-value">${stock[0]}</span></div>
-                        <div class="info-item"><span class="info-label">代碼</span><span class="info-value">${stock[1]}</span></div>
-                        <div class="info-item"><span class="info-label">現價</span><span class="info-value">${stock[2]}</span></div>
-                        <div class="info-item"><span class="info-label">回檔均線狀態</span><span class="info-value">${statusValue}</span></div>
-                        <div class="info-item"><span class="info-label">損益</span><span class="info-value">${stock[4]}</span></div>
-                        <div class="info-item"><span class="info-label">成本</span><span class="info-value">${costValue}</span></div>
+                        <div class="info-item"><span class="info-label">?∪??迂</span><span class="info-value">${stock[0]}</span></div>
+                        <div class="info-item"><span class="info-label">隞?Ⅳ</span><span class="info-value">${stock[1]}</span></div>
+                        <div class="info-item"><span class="info-label">?曉</span><span class="info-value">${stock[2]}</span></div>
+                        <div class="info-item"><span class="info-label">?臬?渡?</span><span class="info-value">${statusValue}</span></div>
+                        <div class="info-item"><span class="info-label">??</span><span class="info-value">${stock[4]}</span></div>
+                        <div class="info-item"><span class="info-label">撱箄降</span><span class="info-value">${costValue}</span></div>
                     </div>
                 `;
             } else {
-                resultDiv.innerHTML = '<p class="not-found" style="color:var(--error-color)">顯示不在選股中</p>';
+                resultDiv.innerHTML = '<p class="not-found" style="color:var(--error-color)">閰脖誨蝣潔??冽??桐葉</p>';
             }
         } catch (e) {
-            resultDiv.innerHTML = '<p class="not-found">連線失敗</p>';
+            resultDiv.innerHTML = '<p class="not-found">???憭望?</p>';
         }
     }
 
     async function renderFullList() {
         const listDiv = document.getElementById('list-result');
+        const countDiv = document.getElementById('filter-count');
+        
         try {
             const data = await fetchData();
-            // 過濾掉第一列 (標題 P1, Q1) 並只取 P, Q 有值的列 (index 15, 16)
+            // 蝭拚 P ??Q 甈??潛?? (index 15, 16)
             const listItems = data.slice(1).filter(row => row[15] || row[16]);
 
+            // ?湔閮??
+            countDiv.innerText = listItems.length;
+            countDiv.style.display = 'block';
+
             if (listItems.length === 0) {
-                listDiv.innerHTML = '<p class="not-found">目前無遠離均線資料</p>';
+                listDiv.innerHTML = '<p class="not-found">?桀??∠蝺蟡刻???/p>';
                 return;
             }
 
             let tableHtml = `
                 <table class="data-table">
-                    <thead><tr><th>搜尋對象 (P)</th><th>狀態/成本 (Q)</th></tr></thead>
+                    <thead><tr><th>?渡??∠巨 (P)</th><th>撱箄降/?暹? (Q)</th></tr></thead>
                     <tbody>
                         ${listItems.map(row => `
                             <tr>
@@ -291,7 +319,7 @@
             `;
             listDiv.innerHTML = tableHtml;
         } catch (e) {
-            listDiv.innerHTML = '<p class="not-found">讀取清單失敗</p>';
+            listDiv.innerHTML = '<p class="not-found">霈???桀仃??/p>';
         }
     }
 
