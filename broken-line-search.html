@@ -273,8 +273,8 @@
 
         try {
             const data = await fetchData();
-            const headers = data[0]; // 取得第一列作為動態欄位名稱
-            const stock = data.find(row => row[0] && row[0].toString().includes(inputCode));
+            const headers = data[0]; 
+            const stock = data.find(row => row[1] && row[1].toString().trim() === inputCode);
 
             if (stock) {
                 const fullStockName = stock[0];
@@ -285,7 +285,6 @@
                     statusValue = `<span style="color: var(--error-color);">遠離均線, 成本為 ${advancedStock[16] || '--'}</span>`;
                 }
 
-                // 動態生成 A~H 欄位 (index 0~7)
                 let infoItemsHtml = '';
                 for (let i = 0; i <= 7; i++) {
                     let label = headers[i] || `欄位 ${String.fromCharCode(65 + i)}`;
@@ -312,6 +311,8 @@
         
         try {
             const data = await fetchData();
+            const headers = data[0];
+            // 讀取 R~V (index 17~21)，排除標題列且 R 欄有值
             listData = data.slice(1).filter(row => row[17]);
 
             countDiv.innerText = listData.length;
@@ -322,23 +323,23 @@
                 return;
             }
 
-            renderTable(listData);
+            renderTable(listData, headers);
         } catch (e) {
             listDiv.innerHTML = '<p class="not-found">讀取清單失敗</p>';
         }
     }
 
-    function renderTable(dataItems) {
+    function renderTable(dataItems, headers) {
         const listDiv = document.getElementById('list-result');
         let tableHtml = `
             <table class="data-table" id="main-table">
                 <thead>
                     <tr>
-                        <th onclick="sortTable(17)">股票名稱 (R)</th>
-                        <th onclick="sortTable(18)">成本 (S)</th>
-                        <th onclick="sortTable(19)">均價 (T)</th>
-                        <th onclick="sortTable(20)">減碼賣出股數 (U)</th>
-                        <th onclick="sortTable(21)">最小賣出股數 (V)</th>
+                        <th onclick="sortTable(17)">${headers[17] || '股票名稱'}</th>
+                        <th onclick="sortTable(18)">${headers[18] || '成本'}</th>
+                        <th onclick="sortTable(19)">${headers[19] || '均價'}</th>
+                        <th onclick="sortTable(20)">${headers[20] || '減碼賣出股數'}</th>
+                        <th onclick="sortTable(21)">${headers[21] || '最小賣出股數'}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -373,7 +374,7 @@
             return valA.toString().localeCompare(valB.toString(), 'zh-Hant') * dir;
         });
 
-        renderTable(listData);
+        fetchData().then(data => renderTable(listData, data[0]));
     }
 
     function parseCSV(text) {
