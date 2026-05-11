@@ -348,9 +348,9 @@
     function renderMATable(dataItems, headers) {
         const listDiv = document.getElementById('ma-result');
         const hW = headers[22] || "W";
-        const hX = headers[23] || "X";
-        const hY = headers[24] || "Y";
-        const hZ = headers[25] || "Z";
+        const hX = "成本";
+        const hY = "買入均價";
+        const hZ = "減碼賣出股數";
         
         let tableHtml = `<table class="data-table"><thead><tr>
             <th onclick="sortTable(22, 'ma')">${hW}</th>
