@@ -338,8 +338,8 @@
         
         try {
             const data = await fetchData();
-            // Columns W, X, Y are indices 22, 23, 24
-            const listItems = data.slice(1).filter(row => row[22] || row[23] || row[24]);
+            // Columns W, X, Y, Z are indices 22, 23, 24, 25
+            const listItems = data.slice(1).filter(row => row[22] || row[23] || row[24] || row[25]);
 
             countDiv.innerText = listItems.length;
             countDiv.style.display = 'block';
@@ -352,16 +352,18 @@
             const hW = data[0][22] || '欄位W';
             const hX = data[0][23] || '欄位X';
             const hY = data[0][24] || '欄位Y';
+            const hZ = data[0][25] || '欄位Z';
 
             let tableHtml = `
                 <table class="data-table">
-                    <thead><tr><th>${hW}</th><th>${hX}</th><th>${hY}</th></tr></thead>
+                    <thead><tr><th>${hW}</th><th>${hX}</th><th>${hY}</th><th>${hZ}</th></tr></thead>
                     <tbody>
                         ${listItems.map(row => `
                             <tr>
                                 <td style="font-weight:600">${row[22] || '--'}</td>
                                 <td>${row[23] || '--'}</td>
-                                <td style="color:var(--error-color)">${row[24] || '--'}</td>
+                                <td>${row[24] || '--'}</td>
+                                <td style="color:var(--error-color)">${row[25] || '--'}</td>
                             </tr>
                         `).join('')}
                     </tbody>
