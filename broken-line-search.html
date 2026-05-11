@@ -33,11 +33,12 @@
             border-radius: 20px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.1);
             width: 100%;
-            max-width: 950px;
+            max-width: 600px;
             text-align: center;
             position: relative;
         }
 
+        /* 右上角計數器 */
         .filter-count {
             position: absolute;
             top: 15px;
@@ -135,16 +136,15 @@
         }
 
         .info-item {
-            margin: 10px 0;
+            margin: 12px 0;
             display: flex;
             justify-content: space-between;
-            padding-bottom: 6px;
+            padding-bottom: 8px;
             border-bottom: 1px dashed #f0f0f0;
         }
 
         .info-label {
             color: #7f8c8d;
-            font-weight: 500;
         }
 
         .info-value {
@@ -152,41 +152,22 @@
             font-weight: 600;
         }
 
-        .data-table-container {
-            overflow-x: auto;
-            margin-top: 10px;
-        }
-
         .data-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.9rem;
+            margin-top: 10px;
         }
 
         .data-table th, .data-table td {
             text-align: left;
-            padding: 10px 8px;
+            padding: 12px;
             border-bottom: 1px solid #eee;
-            white-space: nowrap;
         }
 
         .data-table th {
             background-color: #f8f9fa;
-            color: #2f3542;
-            cursor: pointer;
-            position: sticky;
-            top: 0;
-            user-select: none;
-        }
-
-        .data-table th:hover {
-            background-color: #e2e6ea;
-        }
-
-        .data-table th::after {
-            content: ' ↕';
-            font-size: 0.7rem;
-            color: #ccc;
+            color: #7f8c8d;
+            font-size: 0.9rem;
         }
 
         .not-found, .loading {
@@ -211,10 +192,10 @@
 
     <div class="tabs">
         <div class="tab active" onclick="switchTab('search-tab')">查詢系統</div>
-        <div class="tab" onclick="switchTab('list-tab')">遠離均線名單</div>
+        <div class="tab" onclick="switchTab('list-tab')">破線名單</div>
+        <div class="tab" onclick="switchTab('ma-tab')">跌破月均線</div>
     </div>
 
-    <!-- Tab 1: Search System -->
     <div id="search-tab" class="tab-content active">
         <div class="search-box">
             <input type="number" id="stockCode" placeholder="輸入代碼 (例如: 1303)" inputmode="numeric" autofocus>
@@ -223,127 +204,191 @@
         <div id="result"></div>
     </div>
 
-    <!-- Tab 2: Full List -->
     <div id="list-tab" class="tab-content">
-        <div id="list-result" class="data-table-container">
+        <div id="list-result">
+            <p class="loading">正在載入清單...</p>
+        </div>
+    </div>
+
+    <div id="ma-tab" class="tab-content">
+        <div id="ma-result">
             <p class="loading">正在載入清單...</p>
         </div>
     </div>
 </div>
 
 <script>
-    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1Bl9SRtxSp2StQH99wPLn8TyfvSYRlyHu6-tIS2F_UHg/gviz/tq?tqx=out:csv&sheet=%E6%98%AF%E5%90%A6%E7%A0%B4%E7%B7%9A';
+    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1Bl9SRtxSp2StQH99wPLn8TyfvSYRlyHu6-tIS2F_UHg/export?format=csv&sheet=%E6%98%AF%E5%90%A6%E7%A0%B4%E7%B7%9A';
     let cachedData = null;
-    let listData = [];
-    let sortDirection = {};
 
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
         document.getElementById(tabId).classList.add('active');
         event.currentTarget.classList.add('active');
+
         const countDiv = document.getElementById('filter-count');
-        if (tabId === 'list-tab') { renderFullList(); } else { if (countDiv) countDiv.style.display = 'none'; }
+        if (tabId === 'list-tab') {
+            renderFullList();
+        } else if (tabId === 'ma-tab') {
+            renderMAList();
+        } else {
+            if (countDiv) countDiv.style.display = 'none';
+        }
     }
 
-    document.getElementById('stockCode').addEventListener('keypress', function (e) { if (e.key === 'Enter') searchStock(); });
+    document.getElementById('stockCode').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') searchStock();
+    });
 
     async function fetchData() {
         if (cachedData) return cachedData;
-        const response = await fetch(SHEET_URL);
-        const text = await response.text();
-        cachedData = parseCSV(text);
-        return cachedData;
+        try {
+            const response = await fetch(SHEET_URL);
+            const text = await response.text();
+            cachedData = parseCSV(text);
+            return cachedData;
+        } catch (e) {
+            console.error("Fetch error:", e);
+            throw e;
+        }
     }
 
     async function searchStock() {
         const inputCode = document.getElementById('stockCode').value.trim();
         const resultDiv = document.getElementById('result');
         if (!inputCode) return;
+
         resultDiv.innerHTML = '<p class="loading">查詢中...</p>';
 
         try {
             const data = await fetchData();
-            // B 欄 (index 1) 精確比對
-            const stock = data.find((row, idx) => idx > 0 && row[1] && row[1].toString().trim() === inputCode);
+            const stock = data.find(row => row[1] && row[1].toString() === inputCode);
 
             if (stock) {
-                // Hardcoded labels for Search (A-H)
-                const labels = ["股票名稱", "代碼", "買入均價", "現價", "多頭回檔到均線", "損益", "成本", "試算報酬率"];
-                let infoItemsHtml = '';
-                for (let i = 0; i <= 7; i++) {
-                    let val = stock[i] || '--';
-                    infoItemsHtml += `<div class="info-item"><span class="info-label">${labels[i]}</span><span class="info-value">${val}</span></div>`;
+                const fullStockName = stock[0];
+                const advancedStock = data.find(row => row[15] === fullStockName);
+
+                let statusValue = stock[3] || '--';
+
+                if (advancedStock) {
+                    statusValue = `<span style="color: var(--error-color);">遠離均線, 成本為 ${advancedStock[16] || '--'}</span>`;
                 }
-                resultDiv.innerHTML = `<div class="info-card">${infoItemsHtml}</div>`;
+
+                resultDiv.innerHTML = `
+                    <div class="info-card">
+                        <div class="info-item"><span class="info-label">${data[0][0] || '股票名稱'}</span><span class="info-value">${stock[0]}</span></div>
+                        <div class="info-item"><span class="info-label">${data[0][1] || '代碼'}</span><span class="info-value">${stock[1]}</span></div>
+                        <div class="info-item"><span class="info-label">${data[0][2] || '現價'}</span><span class="info-value">${stock[2]}</span></div>
+                        <div class="info-item"><span class="info-label">${data[0][3] || '回檔均線狀態'}</span><span class="info-value">${statusValue}</span></div>
+                        <div class="info-item"><span class="info-label">${data[0][4] || '損益'}</span><span class="info-value">${stock[4]}</span></div>
+                        <div class="info-item"><span class="info-label">${data[0][5] || '成本'}</span><span class="info-value">${stock[5]}</span></div>
+                    </div>
+                `;
             } else {
                 resultDiv.innerHTML = '<p class="not-found" style="color:var(--error-color)">該代碼不在清單中</p>';
             }
-        } catch (e) { resultDiv.innerHTML = '<p class="not-found">連線失敗</p>'; }
+        } catch (e) {
+            resultDiv.innerHTML = '<p class="not-found">連線失敗</p>';
+        }
     }
 
     async function renderFullList() {
         const listDiv = document.getElementById('list-result');
         const countDiv = document.getElementById('filter-count');
+        
         try {
             const data = await fetchData();
-            // 名單 R~V (index 17-21)
-            listData = data.slice(1).filter(row => row[17] && row[17].toString().trim() !== "");
+            const listItems = data.slice(1).filter(row => row[15] || row[16]);
 
-            countDiv.innerText = listData.length;
+            countDiv.innerText = listItems.length;
             countDiv.style.display = 'block';
-            if (listData.length === 0) { listDiv.innerHTML = '<p class="not-found">目前無名單資料</p>'; return; }
-            renderTable(listData, data[0][17]);
-        } catch (e) { listDiv.innerHTML = '<p class="not-found">讀取清單失敗</p>'; }
+
+            if (listItems.length === 0) {
+                listDiv.innerHTML = '<p class="not-found">目前無破線股票資料</p>';
+                return;
+            }
+
+            const header1 = data[0][15] || '破線股票';
+            const header2 = data[0][16] || '成本/現況';
+
+            let tableHtml = `
+                <table class="data-table">
+                    <thead><tr><th>${header1}</th><th>${header2}</th></tr></thead>
+                    <tbody>
+                        ${listItems.map(row => `
+                            <tr>
+                                <td style="font-weight:600">${row[15] || '--'}</td>
+                                <td style="color:var(--error-color)">${row[16] || '--'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            listDiv.innerHTML = tableHtml;
+        } catch (e) {
+            listDiv.innerHTML = '<p class="not-found">讀取清單失敗</p>';
+        }
     }
 
-    function renderTable(dataItems, dynamicHeaderR) {
-        const listDiv = document.getElementById('list-result');
-        // R is dynamic, others are hardcoded
-        const headerR = dynamicHeaderR || "遠離均線34檔";
-        const otherHeaders = ["成本", "買入均價", "減碼賣出股數", "減碼到最小單位賣出股數"];
+    async function renderMAList() {
+        const listDiv = document.getElementById('ma-result');
+        const countDiv = document.getElementById('filter-count');
         
-        let tableHtml = `<table class="data-table" id="main-table"><thead><tr>
-            <th onclick="sortTable(17)">${headerR}</th>
-            <th onclick="sortTable(18)">${otherHeaders[0]}</th>
-            <th onclick="sortTable(19)">${otherHeaders[1]}</th>
-            <th onclick="sortTable(20)">${otherHeaders[2]}</th>
-            <th onclick="sortTable(21)">${otherHeaders[3]}</th>
-        </tr></thead><tbody>
-        ${dataItems.map(row => `<tr>
-            <td style="font-weight:600">${row[17] || '--'}</td>
-            <td style="color:var(--error-color)">${row[18] || '--'}</td>
-            <td>${row[19] || '--'}</td>
-            <td>${row[20] || '--'}</td>
-            <td style="font-size:0.8rem">${row[21] || '--'}</td>
-        </tr>`).join('')}
-        </tbody></table>`;
-        listDiv.innerHTML = tableHtml;
-    }
+        try {
+            const data = await fetchData();
+            // Columns W, X, Y are indices 22, 23, 24
+            const listItems = data.slice(1).filter(row => row[22] || row[23] || row[24]);
 
-    function sortTable(index) {
-        sortDirection[index] = !sortDirection[index];
-        const dir = sortDirection[index] ? 1 : -1;
-        listData.sort((a, b) => {
-            let valA = a[index] || ''; let valB = b[index] || '';
-            let numA = parseFloat(valA.toString().replace(/,/g, ''));
-            let numB = parseFloat(valB.toString().replace(/,/g, ''));
-            if (!isNaN(numA) && !isNaN(numB)) return (numA - numB) * dir;
-            return valA.toString().localeCompare(valB.toString(), 'zh-Hant') * dir;
-        });
-        fetchData().then(data => renderTable(listData, data[0][17]));
+            countDiv.innerText = listItems.length;
+            countDiv.style.display = 'block';
+
+            if (listItems.length === 0) {
+                listDiv.innerHTML = '<p class="not-found">目前無跌破月均線資料</p>';
+                return;
+            }
+
+            const hW = data[0][22] || '欄位W';
+            const hX = data[0][23] || '欄位X';
+            const hY = data[0][24] || '欄位Y';
+
+            let tableHtml = `
+                <table class="data-table">
+                    <thead><tr><th>${hW}</th><th>${hX}</th><th>${hY}</th></tr></thead>
+                    <tbody>
+                        ${listItems.map(row => `
+                            <tr>
+                                <td style="font-weight:600">${row[22] || '--'}</td>
+                                <td>${row[23] || '--'}</td>
+                                <td style="color:var(--error-color)">${row[24] || '--'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            listDiv.innerHTML = tableHtml;
+        } catch (e) {
+            listDiv.innerHTML = '<p class="not-found">讀取清單失敗</p>';
+        }
     }
 
     function parseCSV(text) {
-        const result = []; let row = []; let col = ""; let quoted = false;
-        for (let i = 0; i < text.length; i++) {
-            let char = text[i]; let next = text[i+1];
-            if (quoted) { if (char === '"' && next === '"') { col += '"'; i++; } else if (char === '"') quoted = false; else col += char; }
-            else { if (char === '"') quoted = true; else if (char === ',') { row.push(col.trim()); col = ""; } else if (char === '\n') { row.push(col.trim()); result.push(row); row = []; col = ""; } else if (char === '\r' && next === '\n') { row.push(col.trim()); result.push(row); row = []; col = ""; i++; } else col += char; }
-        }
-        if (row.length > 0 || col !== "") { row.push(col.trim()); result.push(row); }
-        return result;
+        const lines = text.split(/\r?\n/);
+        return lines.map(line => {
+            const parts = [];
+            let current = '';
+            let inQuotes = false;
+            for (let char of line) {
+                if (char === '"') inQuotes = !inQuotes;
+                else if (char === ',' && !inQuotes) { parts.push(current.trim()); current = ''; }
+                else current += char;
+            }
+            parts.push(current.trim());
+            return parts;
+        });
     }
 </script>
+
 </body>
 </html>
