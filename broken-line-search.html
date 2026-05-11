@@ -121,7 +121,7 @@
             font-weight: 600;
         }
 
-        #result, #list-result {
+        #result, #list-result, #away-result {
             margin-top: 1rem;
             text-align: left;
         }
@@ -193,7 +193,7 @@
     <div class="tabs">
         <div class="tab active" onclick="switchTab('search-tab')">查詢系統</div>
         <div class="tab" onclick="switchTab('list-tab')">破線名單</div>
-        <div class="tab" onclick="switchTab('ma-tab')">跌破月均線</div>
+        <div class="tab" onclick="switchTab('away-tab')">遠離均線名單</div>
     </div>
 
     <div id="search-tab" class="tab-content active">
@@ -210,15 +210,15 @@
         </div>
     </div>
 
-    <div id="ma-tab" class="tab-content">
-        <div id="ma-result">
+    <div id="away-tab" class="tab-content">
+        <div id="away-result">
             <p class="loading">正在載入清單...</p>
         </div>
     </div>
 </div>
 
 <script>
-    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1Bl9SRtxSp2StQH99wPLn8TyfvSYRlyHu6-tIS2F_UHg/export?format=csv&sheet=%E6%98%AF%E5%90%A6%E7%A0%B4%E7%B7%9A';
+    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1Bl9SRtxSp2StQH99wPLn8TyfvSYRlyHu6-tIS2F_UHg/gviz/tq?tqx=out:csv&sheet=%E6%98%AF%E5%90%A6%E7%A0%B4%E7%B7%9A';
     let cachedData = null;
 
     function switchTab(tabId) {
@@ -231,8 +231,8 @@
         const countDiv = document.getElementById('filter-count');
         if (tabId === 'list-tab') {
             renderFullList();
-        } else if (tabId === 'ma-tab') {
-            renderMAList();
+        } else if (tabId === 'away-tab') {
+            renderAwayList();
         } else {
             if (countDiv) countDiv.style.display = 'none';
         }
@@ -244,15 +244,10 @@
 
     async function fetchData() {
         if (cachedData) return cachedData;
-        try {
-            const response = await fetch(SHEET_URL);
-            const text = await response.text();
-            cachedData = parseCSV(text);
-            return cachedData;
-        } catch (e) {
-            console.error("Fetch error:", e);
-            throw e;
-        }
+        const response = await fetch(SHEET_URL);
+        const text = await response.text();
+        cachedData = parseCSV(text);
+        return cachedData;
     }
 
     async function searchStock() {
@@ -264,7 +259,7 @@
 
         try {
             const data = await fetchData();
-            const stock = data.find(row => row[1] && row[1].toString() === inputCode);
+            const stock = data.find(row => row[0] && row[0].toString().includes(inputCode));
 
             if (stock) {
                 const fullStockName = stock[0];
@@ -278,12 +273,12 @@
 
                 resultDiv.innerHTML = `
                     <div class="info-card">
-                        <div class="info-item"><span class="info-label">${data[0][0] || '股票名稱'}</span><span class="info-value">${stock[0]}</span></div>
-                        <div class="info-item"><span class="info-label">${data[0][1] || '代碼'}</span><span class="info-value">${stock[1]}</span></div>
-                        <div class="info-item"><span class="info-label">${data[0][2] || '現價'}</span><span class="info-value">${stock[2]}</span></div>
-                        <div class="info-item"><span class="info-label">${data[0][3] || '回檔均線狀態'}</span><span class="info-value">${statusValue}</span></div>
-                        <div class="info-item"><span class="info-label">${data[0][4] || '損益'}</span><span class="info-value">${stock[4]}</span></div>
-                        <div class="info-item"><span class="info-label">${data[0][5] || '成本'}</span><span class="info-value">${stock[5]}</span></div>
+                        <div class="info-item"><span class="info-label">股票名稱</span><span class="info-value">${stock[0]}</span></div>
+                        <div class="info-item"><span class="info-label">代碼</span><span class="info-value">${stock[1]}</span></div>
+                        <div class="info-item"><span class="info-label">現價</span><span class="info-value">${stock[2]}</span></div>
+                        <div class="info-item"><span class="info-label">回檔均線狀態</span><span class="info-value">${statusValue}</span></div>
+                        <div class="info-item"><span class="info-label">損益</span><span class="info-value">${stock[4]}</span></div>
+                        <div class="info-item"><span class="info-label">成本</span><span class="info-value">${stock[5]}</span></div>
                     </div>
                 `;
             } else {
@@ -310,12 +305,9 @@
                 return;
             }
 
-            const header1 = data[0][15] || '破線股票';
-            const header2 = data[0][16] || '成本/現況';
-
             let tableHtml = `
                 <table class="data-table">
-                    <thead><tr><th>${header1}</th><th>${header2}</th></tr></thead>
+                    <thead><tr><th>破線股票 (P)</th><th>成本/現況 (Q)</th></tr></thead>
                     <tbody>
                         ${listItems.map(row => `
                             <tr>
@@ -332,8 +324,8 @@
         }
     }
 
-    async function renderMAList() {
-        const listDiv = document.getElementById('ma-result');
+    async function renderAwayList() {
+        const listDiv = document.getElementById('away-result');
         const countDiv = document.getElementById('filter-count');
         
         try {
@@ -345,18 +337,13 @@
             countDiv.style.display = 'block';
 
             if (listItems.length === 0) {
-                listDiv.innerHTML = '<p class="not-found">目前無跌破月均線資料</p>';
+                listDiv.innerHTML = '<p class="not-found">目前無遠離均線資料</p>';
                 return;
             }
 
-            const hW = data[0][22] || '欄位W';
-            const hX = data[0][23] || '欄位X';
-            const hY = data[0][24] || '欄位Y';
-            const hZ = data[0][25] || '欄位Z';
-
             let tableHtml = `
                 <table class="data-table">
-                    <thead><tr><th>${hW}</th><th>${hX}</th><th>${hY}</th><th>${hZ}</th></tr></thead>
+                    <thead><tr><th>${data[0][22] || 'W'}</th><th>${data[0][23] || 'X'}</th><th>${data[0][24] || 'Y'}</th><th>${data[0][25] || 'Z'}</th></tr></thead>
                     <tbody>
                         ${listItems.map(row => `
                             <tr>
