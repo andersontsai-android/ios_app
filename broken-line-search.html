@@ -120,7 +120,7 @@
             font-weight: 600;
         }
 
-        #result, #list-result, #away-result {
+        #result, #list-result, #ma-result {
             margin-top: 1rem;
             text-align: left;
         }
@@ -211,8 +211,8 @@
 
     <div class="tabs">
         <div class="tab active" onclick="switchTab('search-tab')">查詢系統</div>
-        <div class="tab" onclick="switchTab('list-tab')">破線名單</div>
-        <div class="tab" onclick="switchTab('away-tab')">遠離均線名單</div>
+        <div class="tab" onclick="switchTab('list-tab')">遠離均線名單</div>
+        <div class="tab" onclick="switchTab('ma-tab')">跌破月均線名單</div>
     </div>
 
     <!-- Tab 1: Search System -->
@@ -224,16 +224,16 @@
         <div id="result"></div>
     </div>
 
-    <!-- Tab 2: Broken Line List -->
+    <!-- Tab 2: 遠離均線名單 (Original R~V) -->
     <div id="list-tab" class="tab-content">
         <div id="list-result" class="data-table-container">
             <p class="loading">正在載入清單...</p>
         </div>
     </div>
 
-    <!-- Tab 3: Away from MA List -->
-    <div id="away-tab" class="tab-content">
-        <div id="away-result" class="data-table-container">
+    <!-- Tab 3: 跌破月均線名單 (New W~Z) -->
+    <div id="ma-tab" class="tab-content">
+        <div id="ma-result" class="data-table-container">
             <p class="loading">正在載入清單...</p>
         </div>
     </div>
@@ -243,7 +243,7 @@
     const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1Bl9SRtxSp2StQH99wPLn8TyfvSYRlyHu6-tIS2F_UHg/gviz/tq?tqx=out:csv&sheet=%E6%98%AF%E5%90%A6%E7%A0%B4%E7%B7%9A';
     let cachedData = null;
     let listData = [];
-    let awayData = [];
+    let maData = [];
     let sortDirection = {};
 
     function switchTab(tabId) {
@@ -254,8 +254,8 @@
         const countDiv = document.getElementById('filter-count');
         if (tabId === 'list-tab') {
             renderFullList();
-        } else if (tabId === 'away-tab') {
-            renderAwayList();
+        } else if (tabId === 'ma-tab') {
+            renderMAList();
         } else {
             if (countDiv) countDiv.style.display = 'none';
         }
@@ -279,11 +279,9 @@
 
         try {
             const data = await fetchData();
-            // B 欄 (index 1) 精確比對
             const stock = data.find((row, idx) => idx > 0 && row[1] && row[1].toString().trim() === inputCode);
 
             if (stock) {
-                // Hardcoded labels for Search (A-H)
                 const labels = ["股票名稱", "代碼", "買入均價", "現價", "多頭回檔到均線", "損益", "成本", "試算報酬率"];
                 let infoItemsHtml = '';
                 for (let i = 0; i <= 7; i++) {
@@ -302,9 +300,7 @@
         const countDiv = document.getElementById('filter-count');
         try {
             const data = await fetchData();
-            // 名單 R~V (index 17-21)
             listData = data.slice(1).filter(row => row[17] && row[17].toString().trim() !== "");
-
             countDiv.innerText = listData.length;
             countDiv.style.display = 'block';
             if (listData.length === 0) { listDiv.innerHTML = '<p class="not-found">目前無名單資料</p>'; return; }
@@ -312,18 +308,17 @@
         } catch (e) { listDiv.innerHTML = '<p class="not-found">讀取清單失敗</p>'; }
     }
 
-    async function renderAwayList() {
-        const listDiv = document.getElementById('away-result');
+    async function renderMAList() {
+        const listDiv = document.getElementById('ma-result');
         const countDiv = document.getElementById('filter-count');
         try {
             const data = await fetchData();
-            // 遠離均線名單 W~Z (index 22-25)
-            awayData = data.slice(1).filter(row => (row[22] && row[22].toString().trim() !== "") || (row[23] && row[23].toString().trim() !== ""));
-
-            countDiv.innerText = awayData.length;
+            // 跌破月均線名單 W~Z (index 22-25)
+            maData = data.slice(1).filter(row => (row[22] && row[22].toString().trim() !== "") || (row[23] && row[23].toString().trim() !== ""));
+            countDiv.innerText = maData.length;
             countDiv.style.display = 'block';
-            if (awayData.length === 0) { listDiv.innerHTML = '<p class="not-found">目前無名單資料</p>'; return; }
-            renderAwayTable(awayData, data[0]);
+            if (maData.length === 0) { listDiv.innerHTML = '<p class="not-found">目前無名單資料</p>'; return; }
+            renderMATable(maData, data[0]);
         } catch (e) { listDiv.innerHTML = '<p class="not-found">讀取清單失敗</p>'; }
     }
 
@@ -350,18 +345,18 @@
         listDiv.innerHTML = tableHtml;
     }
 
-    function renderAwayTable(dataItems, headers) {
-        const listDiv = document.getElementById('away-result');
+    function renderMATable(dataItems, headers) {
+        const listDiv = document.getElementById('ma-result');
         const hW = headers[22] || "W";
         const hX = headers[23] || "X";
         const hY = headers[24] || "Y";
         const hZ = headers[25] || "Z";
         
         let tableHtml = `<table class="data-table"><thead><tr>
-            <th onclick="sortTable(22, 'away')">${hW}</th>
-            <th onclick="sortTable(23, 'away')">${hX}</th>
-            <th onclick="sortTable(24, 'away')">${hY}</th>
-            <th onclick="sortTable(25, 'away')">${hZ}</th>
+            <th onclick="sortTable(22, 'ma')">${hW}</th>
+            <th onclick="sortTable(23, 'ma')">${hX}</th>
+            <th onclick="sortTable(24, 'ma')">${hY}</th>
+            <th onclick="sortTable(25, 'ma')">${hZ}</th>
         </tr></thead><tbody>
         ${dataItems.map(row => `<tr>
             <td style="font-weight:600">${row[22] || '--'}</td>
@@ -376,7 +371,7 @@
     function sortTable(index, type) {
         sortDirection[index] = !sortDirection[index];
         const dir = sortDirection[index] ? 1 : -1;
-        let targetData = (type === 'list') ? listData : awayData;
+        let targetData = (type === 'list') ? listData : maData;
         
         targetData.sort((a, b) => {
             let valA = a[index] || ''; let valB = b[index] || '';
@@ -388,7 +383,7 @@
         
         fetchData().then(data => {
             if (type === 'list') renderTable(listData, data[0][17], 'list-result', 17);
-            else renderAwayTable(awayData, data[0]);
+            else renderMATable(maData, data[0]);
         });
     }
 
