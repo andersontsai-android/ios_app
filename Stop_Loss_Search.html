@@ -252,6 +252,10 @@
 
         function renderTable(data) {
             const tbody = document.getElementById('tableBody');
+            const headers = Array.from(document.querySelectorAll('th')).map(th => th.textContent);
+            const profitIndex = headers.indexOf('損益');
+            const roiIndex = headers.indexOf('報酬率');
+            
             tbody.innerHTML = '';
 
             data.forEach(row => {
@@ -264,9 +268,21 @@
                     if (cell === '#N/A' || cell === '') {
                         td.classList.add('na');
                         td.textContent = cell || '-';
-                    } else if (!isNaN(cell.replace(/,/g, '')) && cell !== '') {
-                        // 如果是數字，可以考慮加點顏色，但這裡先根據業務邏輯判斷
-                        // 例如成本、均價等，這裡先保持預設
+                    } else {
+                        const numValue = parseFloat(cell.replace(/,/g, '').replace('%', ''));
+                        
+                        if (!isNaN(numValue)) {
+                            // 損益 < -5000 標紅粗體
+                            if (index === profitIndex && numValue < -5000) {
+                                td.classList.add('negative');
+                                td.style.fontWeight = '800';
+                            }
+                            // 報酬率 < -15% 標紅粗體
+                            if (index === roiIndex && numValue < -15) {
+                                td.classList.add('negative');
+                                td.style.fontWeight = '800';
+                            }
+                        }
                     }
                     
                     tr.appendChild(td);
