@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>股票停損監控報表</title>
+    <style>
+        :root {
+            --primary-color: #1a73e8;
+            --bg-color: #f8f9fa;
+            --text-color: #202124;
+            --border-color: #dadce0;
+            --hover-color: #f1f3f4;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 15px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 24px;
+            color: var(--primary-color);
+        }
+
+        .update-info {
+            font-size: 13px;
+            color: #70757a;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 15px;
+            white-space: nowrap;
+        }
+
+        th {
+            background-color: #f1f3f4;
+            color: #5f6368;
+            font-weight: 600;
+            text-align: left;
+            padding: 12px 15px;
+            cursor: pointer;
+            user-select: none;
+            position: sticky;
+            top: 0;
+            transition: background-color 0.2s;
+        }
+
+        th:hover {
+            background-color: #e8eaed;
+        }
+
+        th.sort-asc::after { content: " ↑"; color: var(--primary-color); }
+        th.sort-desc::after { content: " ↓"; color: var(--primary-color); }
+
+        td {
+            padding: 12px 15px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        tr:hover {
+            background-color: var(--hover-color);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #70757a;
+            font-size: 18px;
+        }
+
+        /* 數值著色 */
+        .negative { color: #d93025; font-weight: 500; }
+        .positive { color: #188038; font-weight: 500; }
+        .na { color: #bdc1c6; font-style: italic; }
+
+        @media (max-width: 600px) {
+            padding: 10px;
+            .container { padding: 15px; }
+            h1 { font-size: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>股票停損監控報表</h1>
+            <div class="update-info" id="updateTime">載入中...</div>
+        </header>
+
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="搜尋代碼或名稱...">
+        </div>
+
+        <div id="loading" class="loading">正在從雲端讀取最新數據...</div>
+        
+        <div class="table-wrapper" id="tableWrapper" style="display: none;">
+            <table id="stockTable">
+                <thead>
+                    <tr id="tableHeader"></tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1Bl9SRtxSp2StQH99wPLn8TyfvSYRlyHu6-tIS2F_UHg/export?format=csv&sheet=%E5%81%9C%E6%90%8D';
+        
+        let rawData = [];
+        let currentData = [];
+        let sortColumn = -1;
+        let sortDirection = 1; // 1: asc, -1: desc
+
+        // 專業 CSV 解析器，處理雙引號與逗號巢狀結構
+        function parseCSV(text) {
+            const rows = [];
+            let currentRow = [];
+            let currentField = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const nextChar = text[i + 1];
+
+                if (inQuotes) {
+                    if (char === '"') {
+                        if (nextChar === '"') {
+                            currentField += '"';
+                            i++;
+                        } else {
+                            inQuotes = false;
+                        }
+                    } else {
+                        currentField += char;
+                    }
+                } else {
+                    if (char === '"') {
+                        inQuotes = true;
+                    } else if (char === ',') {
+                        currentRow.push(currentField.trim());
+                        currentField = '';
+                    } else if (char === '\r' || char === '\n') {
+                        if (currentField || currentRow.length > 0) {
+                            currentRow.push(currentField.trim());
+                            rows.push(currentRow);
+                            currentField = '';
+                            currentRow = [];
+                        }
+                        if (char === '\r' && nextChar === '\n') i++;
+                    } else {
+                        currentField += char;
+                    }
+                }
+            }
+            if (currentField || currentRow.length > 0) {
+                currentRow.push(currentField.trim());
+                rows.push(currentRow);
+            }
+            return rows;
+        }
+
+        async function fetchData() {
+            try {
+                const response = await fetch(SPREADSHEET_URL);
+                const text = await response.text();
+                const rows = parseCSV(text);
+                
+                if (rows.length === 0) throw new Error('No data found');
+
+                const headers = rows[0];
+                rawData = rows.slice(1);
+                currentData = [...rawData];
+
+                renderHeader(headers);
+                renderTable(currentData);
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('tableWrapper').style.display = 'block';
+                document.getElementById('updateTime').textContent = `最後更新: ${new Date().toLocaleString('zh-TW')}`;
+                
+            } catch (error) {
+                console.error('Fetch error:', error);
+                document.getElementById('loading').textContent = '❌ 無法載入資料，請檢查網路或連結。';
+            }
+        }
+
+        function renderHeader(headers) {
+            const headerRow = document.getElementById('tableHeader');
+            headerRow.innerHTML = '';
+            headers.forEach((h, index) => {
+                const th = document.createElement('th');
+                th.textContent = h;
+                th.onclick = () => sortTable(index);
+                headerRow.appendChild(th);
+            });
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                row.forEach((cell, index) => {
+                    const td = document.createElement('td');
+                    td.textContent = cell;
+
+                    // 樣式處理
+                    if (cell === '#N/A' || cell === '') {
+                        td.classList.add('na');
+                        td.textContent = cell || '-';
+                    } else if (!isNaN(cell.replace(/,/g, '')) && cell !== '') {
+                        // 如果是數字，可以考慮加點顏色，但這裡先根據業務邏輯判斷
+                        // 例如成本、均價等，這裡先保持預設
+                    }
+                    
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
+        function sortTable(index) {
+            if (sortColumn === index) {
+                sortDirection *= -1;
+            } else {
+                sortColumn = index;
+                sortDirection = 1;
+            }
+
+            // 更新 Header 樣式
+            const ths = document.querySelectorAll('th');
+            ths.forEach((th, i) => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                if (i === index) {
+                    th.classList.add(sortDirection === 1 ? 'sort-asc' : 'sort-desc');
+                }
+            });
+
+            currentData.sort((a, b) => {
+                let valA = a[index] || '';
+                let valB = b[index] || '';
+
+                // 處理 #N/A，始終放在最後
+                const isNA_A = valA === '#N/A' || valA === '';
+                const isNA_B = valB === '#N/A' || valB === '';
+                if (isNA_A && !isNA_B) return 1;
+                if (!isNA_A && isNA_B) return -1;
+                if (isNA_A && isNA_B) return 0;
+
+                // 數字轉換
+                const numA = parseFloat(valA.replace(/,/g, ''));
+                const numB = parseFloat(valB.replace(/,/g, ''));
+
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    return (numA - numB) * sortDirection;
+                }
+
+                return valA.localeCompare(valB, 'zh-Hant') * sortDirection;
+            });
+
+            renderTable(currentData);
+        }
+
+        // 搜尋功能
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            currentData = rawData.filter(row => 
+                row.some(cell => cell.toLowerCase().includes(term))
+            );
+            renderTable(currentData);
+        });
+
+        fetchData();
+    </script>
+</body>
+</html>
